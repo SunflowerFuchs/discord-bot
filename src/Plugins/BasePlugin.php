@@ -4,14 +4,24 @@ namespace SunflowerFuchs\DiscordBot\Plugins;
 
 use SunflowerFuchs\DiscordBot\Bot;
 
-trait PluginTrait
+abstract class BasePlugin
 {
     protected Bot $bot;
 
+    /**
+     * An array containing all commands and their corresponding function calls
+     *
+     * Add entries in this array to register the commands this plugin adds
+     * The format is
+     * ['command' => 'function name']
+     *
+     * @var array $commands
+     */
     protected array $commands = [];
 
     public function init(Bot $bot): self
     {
+        // TODO: Prevent plugins from overwriting this
         $this->validateFunctions();
         $this->bot = $bot;
         return $this;
@@ -30,7 +40,7 @@ trait PluginTrait
     protected function validateFunctions()
     {
         foreach ($this->commands as $function) {
-            if (!is_callable($this->$function)) {
+            if (!is_callable([$this, $function])) {
                 throw new \InvalidArgumentException("Undefined function '${function}' in class " . static::class);
             }
         }

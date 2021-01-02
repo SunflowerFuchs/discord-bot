@@ -13,12 +13,14 @@ use React\EventLoop\StreamSelectLoop;
 use React\Promise\PromiseInterface;
 use SunflowerFuchs\DiscordBot\Plugins\BasePlugin;
 use SunflowerFuchs\DiscordBot\Plugins\PingPlugin;
+use SunflowerFuchs\DiscordBot\Plugins\UptimePlugin;
 
 class Bot
 {
     protected const gatewayParams = '?v=8&encoding=json';
     protected const defaultPlugins = [
         PingPlugin::class,
+        UptimePlugin::class,
     ];
 
     protected array $options;

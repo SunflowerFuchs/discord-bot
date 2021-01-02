@@ -251,7 +251,7 @@ class Bot
                 break;
             case 9: // "9 Invalid Session"-Payload
             case 7: // "7 Reconnect"-Payload
-                $this->reconnectGateway($message['d']);
+                $this->reconnectGateway(boolval($message['d']) ?? true);
                 break;
             case 0: // "0 Dispatch"-Payload
                 switch ($message['t']) {

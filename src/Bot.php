@@ -37,6 +37,7 @@ class Bot
         | 1 << 11;
     protected int $sequence = 0;
     protected int $userId = 0;
+    protected string $gatewayUrl = '';
     protected string $sessionId = '';
     protected bool $waitingForHeartbeatACK = false;
     protected bool $reconnect = false;
@@ -58,6 +59,10 @@ class Bot
 
         $this->loop = Factory::create();
         $this->connector = new Connector($this->loop);
+        $this->apiClient = new Client([
+            'base_uri' => 'https://discordapp.com/api/',
+            'headers' => $this->header,
+        ]);
     }
 
     public function run()
@@ -181,29 +186,29 @@ class Bot
 
     function invokeGateway()
     {
-        $this->apiClient = new Client([
-            'base_uri' => 'https://discordapp.com/api/',
-            'headers' => $this->header,
-        ]);
-        $res = $this->apiClient->request('GET', 'gateway/bot', []);
+        if (!$this->gatewayUrl) {
+            $res = $this->apiClient->request('GET', 'gateway', []);
+            if ($res->getStatusCode() != 200) {
+                throw new Exception('Error retrieving gateway');
+            }
 
-        if ($res->getStatusCode() != 200) {
-            throw new Exception('Error retrieving gateway');
+            $gatewayJson = json_decode($res->getBody()->getContents(), true);
+            $this->gatewayUrl = $gatewayJson['url'];
+
+            /* TODO: sharding
+            // these params only come with if we GET gateway/bot/, which should not be cached
+            $this->shards = $gatewayJson['shards'];
+            $limits = $gatewayJson['session_start_limit'] ?? false;
+
+            if ($limits && $limits['remaining'] < ($limits['total'] * 0.1)) {
+                $resetInMinutes = $limits['reset_after'] / 1000 / 60;
+                echo 'WARNING: Only ' . $limits['remaining'] . ' gateway connections remaining. Reset in ' . $resetInMinutes . ' minutes (' . ($resetInMinutes / 60) . ' hours).' . PHP_EOL;
+            }
+            */
         }
 
-        $gatewayJson = json_decode($res->getBody()->getContents(), true);
-        $gatewayUrl = $gatewayJson['url'];
-        $limits = $gatewayJson['session_start_limit'] ?? false;
-        // TODO: sharding
-        // $this->shards = $gatewayJson['shards'];
-
-        if ($limits && $limits['remaining'] < ($limits['total'] * 0.1)) {
-            $resetInMinutes = $limits['reset_after'] / 1000 / 60;
-            echo 'WARNING: Only ' . $limits['remaining'] . ' gateway connections remaining. Reset in ' . $resetInMinutes . ' minutes (' . ($resetInMinutes / 60) . ' hours).' . PHP_EOL;
-        }
-
-        $this->socket = $this->connector->__invoke($gatewayUrl . static::gatewayParams, [], $this->header)->then(function (WebSocket $conn) {
-            echo 'Connected!' . PHP_EOL;
+        $this->socket = $this->connector->__invoke($this->gatewayUrl . static::gatewayParams, [], $this->header)->then(function (WebSocket $conn) {
+            echo 'Connected to gateway.' . PHP_EOL;
             $this->websocket = $conn;
             $this->waitingForHeartbeatACK = false;
 

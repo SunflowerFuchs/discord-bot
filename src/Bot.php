@@ -141,7 +141,7 @@ class Bot
         $this->intents |= $plugin->intents;
     }
 
-    protected function runCommand(string $command, string $message, int $channelId)
+    protected function runCommand(string $command, string $message, int $channelId, array $messageObject)
     {
         // Handle unknown commands
         if (!isset($this->commands[$command])) return;
@@ -149,7 +149,7 @@ class Bot
         // Parse which command to run and launch it
         $function = $this->commands[$command]['function'];
         $instance = $this->commands[$command]['instance'];
-        call_user_func([$instance, $function], $message, $channelId);
+        call_user_func([$instance, $function], $message, $channelId, $messageObject);
     }
 
     public function sendMessage(string $message, int $channelId): bool
@@ -265,7 +265,12 @@ class Bot
                             $content = substr(trim($message['d']['content']), strlen($this->options['prefix']));
                             $parts = explode(' ', $content);
 
-                            $this->runCommand($parts[0], $parts[1] ?? '', $message['d']['channel_id']);
+                            $this->runCommand(
+                                $parts[0],
+                                $parts[1] ?? '',
+                                $message['d']['channel_id'],
+                                $message['d']
+                            );
                         }
                         break;
                     case 'GUILD_CREATE':

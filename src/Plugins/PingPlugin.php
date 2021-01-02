@@ -10,8 +10,8 @@ class PingPlugin extends BasePlugin
         'ping' => 'ping'
     ];
 
-    public function ping()
+    public function ping(string $message, string $channelId)
     {
-        $this->sendMessage('Pong');
+        $this->sendMessage('Pong', $channelId);
     }
 }

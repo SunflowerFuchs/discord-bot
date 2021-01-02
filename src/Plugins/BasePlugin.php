@@ -19,6 +19,14 @@ abstract class BasePlugin
      */
     protected array $commands = [];
 
+    /**
+     * An int containing all intents this plugin needs
+     * @see https://discord.com/developers/docs/topics/gateway#gateway-intents
+     * @example 1 << 9 for message sending/receiving
+     * @var int $intents
+     */
+    public int $intents = 0;
+
     public function init(Bot $bot): self
     {
         // TODO: Prevent plugins from overwriting this
@@ -27,9 +35,9 @@ abstract class BasePlugin
         return $this;
     }
 
-    protected function sendMessage(string $message): bool
+    protected function sendMessage(string $message, int $channelId): bool
     {
-        return $this->bot->sendMessage($message);
+        return $this->bot->sendMessage($message, $channelId);
     }
 
     public function getCommands()

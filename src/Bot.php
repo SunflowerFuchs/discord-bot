@@ -235,6 +235,11 @@ class Bot
     {
         $this->loop->cancelTimer($this->heartbeatTimer);
         $this->heartbeatTimer = null;
+
+        // Not sure if removing the listeners manually is necessary, but i do it here for cleanliness
+        foreach (['message', 'error', 'close '] as $event) {
+            $this->websocket->removeAllListeners($event);
+        }
         $this->websocket->close($code, $reason);
     }
 

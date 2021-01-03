@@ -10,6 +10,7 @@ use Ratchet\Client\WebSocket;
 use Ratchet\RFC6455\Messaging\Message;
 use React\EventLoop\Factory;
 use React\EventLoop\StreamSelectLoop;
+use React\EventLoop\TimerInterface;
 use React\Promise\PromiseInterface;
 use SunflowerFuchs\DiscordBot\Plugins\BasePlugin;
 use SunflowerFuchs\DiscordBot\Plugins\PingPlugin;
@@ -23,7 +24,7 @@ class Bot
         UptimePlugin::class,
     ];
 
-    protected array $options;
+    protected array $options = [];
     protected array $plugins = [];
     protected array $commands = [];
     protected array $header = [
@@ -41,11 +42,12 @@ class Bot
     protected string $sessionId = '';
     protected bool $waitingForHeartbeatACK = false;
     protected bool $reconnect = false;
-    protected StreamSelectLoop $loop;
-    protected Connector $connector;
-    protected PromiseInterface $socket;
-    protected WebSocket $websocket;
-    protected Client $apiClient;
+    protected ?Client $apiClient = null;
+    protected ?StreamSelectLoop $loop = null;
+    protected ?Connector $connector = null;
+    protected ?PromiseInterface $socket = null;
+    protected ?WebSocket $websocket = null;
+    protected ?TimerInterface $heartbeatTimer = null;
 
     public function __construct(array $options)
     {
@@ -225,12 +227,14 @@ class Bot
     function reconnectGateway(bool $sendReconnect = true)
     {
         $this->reconnect = $sendReconnect;
-        $this->closeGateway(1002, 'Going to reconnect.');
+        $this->closeGateway(4100, 'Going to reconnect.');
         $this->invokeGateway();
     }
 
-    function closeGateway(int $code = 1001, string $reason = '')
+    function closeGateway(int $code = 4100, string $reason = '')
     {
+        $this->loop->cancelTimer($this->heartbeatTimer);
+        $this->heartbeatTimer = null;
         $this->websocket->close($code, $reason);
     }
 
@@ -247,7 +251,7 @@ class Bot
             case 10: //"10 Hello"-Payload
                 $this->sendHeartbeat();
                 $heartbeatInterval = floatval($message['d']['heartbeat_interval'] / 1000);
-                $this->loop->addPeriodicTimer($heartbeatInterval, [$this, 'sendHeartbeat']);
+                $this->heartbeatTimer = $this->loop->addPeriodicTimer($heartbeatInterval, [$this, 'sendHeartbeat']);
                 $this->identify();
                 break;
             case 1: // "1 Heartbeat"-Payload

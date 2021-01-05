@@ -59,8 +59,6 @@ class Bot
             }
         }
 
-        $this->loop = Factory::create();
-        $this->connector = new Connector($this->loop);
         $this->apiClient = new Client([
             'base_uri' => 'https://discordapp.com/api/',
             'headers' => $this->header,
@@ -74,7 +72,6 @@ class Bot
         $running = true;
 
         $this->invokeGateway();
-        $this->loop->run();
     }
 
     protected function setOptions(array $options): void
@@ -209,7 +206,9 @@ class Bot
             */
         }
 
-        $this->socket = $this->connector->__invoke($this->gatewayUrl . static::gatewayParams, [], $this->header)->then(function (WebSocket $conn) {
+        $this->loop = Factory::create();
+        $this->connector = new Connector($this->loop);
+        $this->connector->__invoke($this->gatewayUrl . static::gatewayParams, [], $this->header)->then(function (WebSocket $conn) {
             echo 'Connected to gateway.' . PHP_EOL;
             $this->websocket = $conn;
             $this->waitingForHeartbeatACK = false;
@@ -222,6 +221,8 @@ class Bot
             echo "Reason: " . $e->getMessage() . PHP_EOL;
             die();
         });
+
+        $this->loop->run();
     }
 
     function reconnectGateway(bool $sendReconnect = true)
@@ -233,10 +234,7 @@ class Bot
 
     function closeGateway(int $code = 4100, string $reason = '')
     {
-        if ($this->heartbeatTimer !== null) {
-            $this->loop->cancelTimer($this->heartbeatTimer);
-            $this->heartbeatTimer = null;
-        }
+        $this->removeHeartbeatTimer();
 
         // Not sure if removing the listeners manually is necessary, but i do it here for cleanliness
         foreach (['message', 'error', 'close '] as $event) {
@@ -256,9 +254,7 @@ class Bot
 
         switch ($message['op']) {
             case 10: //"10 Hello"-Payload
-                $this->sendHeartbeat();
-                $heartbeatInterval = floatval($message['d']['heartbeat_interval'] / 1000);
-                $this->heartbeatTimer = $this->loop->addPeriodicTimer($heartbeatInterval, [$this, 'sendHeartbeat']);
+                $this->addHeartbeatTimer(floatval($message['d']['heartbeat_interval'] / 1000));
                 $this->identify();
                 break;
             case 1: // "1 Heartbeat"-Payload
@@ -322,7 +318,7 @@ class Bot
     {
         if ($this->reconnect) {
             $this->reconnect = false;
-            echo "Reconnecting..." . PHP_EOL;
+            echo "Resuming..." . PHP_EOL;
             $message = [
                 'op' => 6,
                 'd' => [
@@ -358,6 +354,27 @@ class Bot
         }
 
         $this->websocket->send(json_encode($message));
+    }
+
+    function addHeartbeatTimer(float $interval) {
+        if ($this->heartbeatTimer) {
+            echo 'New HeartbeatTimer while we still have an old one. Should not happen...';
+            $this->removeHeartbeatTimer();
+        }
+
+        $this->heartbeatTimer = $this->loop->addPeriodicTimer($interval, [$this, 'sendHeartbeat']);
+        // instantly send the first heartbeat
+        $this->sendHeartbeat();
+    }
+
+    function removeHeartbeatTimer()
+    {
+        if (!$this->heartbeatTimer) {
+            return;
+        }
+
+        $this->loop->cancelTimer($this->heartbeatTimer);
+        $this->heartbeatTimer = null;
     }
 
     function sendHeartbeat()

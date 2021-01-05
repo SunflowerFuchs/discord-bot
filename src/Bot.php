@@ -184,7 +184,7 @@ class Bot
         return true;
     }
 
-    function invokeGateway()
+    protected function invokeGateway()
     {
         if (!$this->gatewayUrl) {
             $res = $this->apiClient->request('GET', 'gateway', []);
@@ -210,7 +210,7 @@ class Bot
         $this->loop = Factory::create();
         $this->connector = new Connector($this->loop);
         $this->connector->__invoke($this->gatewayUrl . static::gatewayParams, [], $this->header)->then(function (WebSocket $conn) {
-            $this->debug('Connected to gateway.');
+            $this->debugMsg('Connected to gateway.');
             $this->websocket = $conn;
             $this->waitingForHeartbeatACK = false;
 
@@ -225,14 +225,14 @@ class Bot
         $this->loop->run();
     }
 
-    function reconnectGateway(bool $sendReconnect = true)
+    protected function reconnectGateway(bool $sendReconnect = true)
     {
         $this->reconnect = $sendReconnect;
         $this->closeGateway(4100, 'Going to reconnect.');
         $this->invokeGateway();
     }
 
-    function closeGateway(int $code = 4100, string $reason = '')
+    protected function closeGateway(int $code = 4100, string $reason = '')
     {
         $this->removeHeartbeatTimer();
 
@@ -242,7 +242,7 @@ class Bot
         $this->loop->stop();
     }
 
-    function onGatewayMessage(Message $receivedMessage)
+    protected function onGatewayMessage(Message $receivedMessage)
     {
         $message = json_decode($receivedMessage->getPayload(), true);
         $this->sequence = $message['s'] ?? $this->sequence;
@@ -265,7 +265,7 @@ class Bot
             case 0: // "0 Dispatch"-Payload
                 switch ($message['t']) {
                     case 'READY' :
-                        $this->debug("Gateway session initialized.");
+                        $this->debugMsg("Gateway session initialized.");
                         $this->sessionId = $message['d']['session_id'];
                         $this->userId = $message['d']['user']['id'];
                         break;
@@ -295,24 +295,24 @@ class Bot
         }
     }
 
-    function onGatewayError()
+    protected function onGatewayError()
     {
         user_error("Gateway sent an unexpected error, attempting to reconnect...", E_USER_WARNING);
         $this->reconnectGateway();
     }
 
-    function onGatewayClose(int $errorCode, string $errorMessage)
+    protected function onGatewayClose(int $errorCode, string $errorMessage)
     {
         user_error("Gateway was unexpectedly closed, reason: ${errorCode} - ${errorMessage}" . PHP_EOL
                    . "Attempting to reconnect...", E_USER_WARNING);
         $this->reconnectGateway();
     }
 
-    function identify()
+    protected function identify()
     {
         if ($this->reconnect) {
             $this->reconnect = false;
-            $this->debug("Resuming...");
+            $this->debugMsg("Resuming...");
             $message = [
                 'op' => 6,
                 'd' => [
@@ -324,7 +324,7 @@ class Bot
                 't' => 'GATEWAY_RESUME',
             ];
         } else {
-            $this->debug("Identifying...");
+            $this->debugMsg("Identifying...");
             $message = [
                 'op' => 2,
                 'd' => [
@@ -350,7 +350,7 @@ class Bot
         $this->websocket->send(json_encode($message));
     }
 
-    function addHeartbeatTimer(float $interval) {
+    protected function addHeartbeatTimer(float $interval) {
         if ($this->heartbeatTimer) {
             user_error('New HeartbeatTimer while we still have an old one. Should not happen...', E_USER_NOTICE);
             $this->removeHeartbeatTimer();
@@ -361,7 +361,7 @@ class Bot
         $this->sendHeartbeat();
     }
 
-    function removeHeartbeatTimer()
+    protected function removeHeartbeatTimer()
     {
         if (!$this->heartbeatTimer) {
             return;
@@ -371,7 +371,7 @@ class Bot
         $this->heartbeatTimer = null;
     }
 
-    function sendHeartbeat()
+    protected function sendHeartbeat()
     {
         if ($this->waitingForHeartbeatACK) {
             user_error("No ACK for Heartbeat received. Attempting to reconnect...", E_USER_NOTICE);
@@ -386,7 +386,7 @@ class Bot
         }
     }
 
-    function debug(string $message) {
+    public function debugMsg(string $message) {
         if (!$this->options['debug']) return;
 
         echo $message . PHP_EOL;

@@ -1,2 +1,4 @@
 [tests]
 token = "ABCDEF"
+prefix = "!"
+debug = true

@@ -237,10 +237,9 @@ class Bot
         $this->removeHeartbeatTimer();
 
         // Not sure if removing the listeners manually is necessary, but i do it here for cleanliness
-        foreach (['message', 'error', 'close '] as $event) {
-            $this->websocket->removeAllListeners($event);
-        }
+        $this->websocket->removeAllListeners();
         $this->websocket->close($code, $reason);
+        $this->loop->stop();
     }
 
     function onGatewayMessage(Message $receivedMessage)

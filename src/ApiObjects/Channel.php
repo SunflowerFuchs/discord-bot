@@ -163,7 +163,7 @@ class Channel
     /**
      * Returns the type of the channel
      *
-     * @return int|mixed
+     * @return int
      * @see Channel::TYPE_GUILD_TEXT
      * @see Channel::TYPE_DM
      * @see Channel::TYPE_GUILD_VOICE

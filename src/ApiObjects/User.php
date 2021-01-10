@@ -4,11 +4,10 @@
 namespace SunflowerFuchs\DiscordBot\ApiObjects;
 
 
+use SunflowerFuchs\DiscordBot\Bot;
+
 class User
 {
-    // TODO: Centralize the BaseImageUrl
-    const BaseImageUrl = 'https://cdn.discordapp.com/';
-
     const PREMIUM_NONE = 0;
     const PREMIUM_CLASSIC = 1;
     const PREMIUM_NITRO = 2;
@@ -43,6 +42,16 @@ class User
         $this->flags = $data['flags'] ?? 0;
         $this->premium_type = $data['premium_type'] ?? 0;
         $this->public_flags = $data['public_flags'] ?? 0;
+    }
+
+    public static function fromUserId(string $userId): ?self
+    {
+        $res = Bot::getInstance()->getApiClient()->get("users/${userId}");
+        if ($res->getStatusCode() === 200) {
+            return new static(json_decode($res->getBody()->getContents(), true));
+        }
+
+        return null;
     }
 
     /**
@@ -113,7 +122,7 @@ class User
         // make sure the size is within the allowed range
         $size = max(min($size, 4096), 16);
 
-        $baseImageUrl = self::BaseImageUrl;
+        $baseImageUrl = Bot::BaseImageUrl;
         $hash = $this->getAvatarHash();
         if ($hash) {
             if (!in_array($format, ['png', 'jpg', 'jpeg', 'webp', 'gif'])) {

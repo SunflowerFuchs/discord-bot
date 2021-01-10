@@ -4,6 +4,8 @@
 namespace SunflowerFuchs\DiscordBot\Plugins;
 
 
+use SunflowerFuchs\DiscordBot\ApiObjects\User;
+
 class PingPlugin extends BasePlugin
 {
     protected array $commands = [
@@ -12,8 +14,9 @@ class PingPlugin extends BasePlugin
 
     public function ping(string $message, string $channelId, array $messageObject)
     {
-        $userId = !empty($messageObject['webhook_id']) ? null : $messageObject['author']['id'];
-        if ($userId && $message == 'long') {
+        $author = !empty($messageObject['webhook_id']) ? null : new User($messageObject['author']);
+        if ($author && $message == 'long') {
+            $userId = $author->getId();
             $response = "Hey <@${userId}>. I'm up and running, and having fun!";
             $this->sendMessage($response, $channelId);
         } else {

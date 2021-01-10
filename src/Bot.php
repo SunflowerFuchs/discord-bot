@@ -23,6 +23,7 @@ class Bot
         PingPlugin::class,
         UptimePlugin::class,
     ];
+    public const BaseImageUrl = 'https://cdn.discordapp.com/';
 
     protected array $options = [];
     protected array $plugins = [];
@@ -42,41 +43,51 @@ class Bot
     protected string $sessionId = '';
     protected bool $waitingForHeartbeatACK = false;
     protected bool $reconnect = false;
-    protected ?Client $apiClient = null;
     protected ?StreamSelectLoop $loop = null;
     protected ?Connector $connector = null;
     protected ?PromiseInterface $socket = null;
     protected ?WebSocket $websocket = null;
     protected ?TimerInterface $heartbeatTimer = null;
 
-    public function __construct(array $options)
+    private function __construct()
     {
-        $this->setOptions($options);
-
-        if ($this->options['defaultPlugins']) {
-            foreach (static::defaultPlugins as $class) {
-                $this->registerPlugin(new $class());
-            }
-        }
-
-        $this->apiClient = new Client([
-            'base_uri' => 'https://discordapp.com/api/',
-            'headers' => $this->header,
-        ]);
     }
 
-    public function run() : bool
+    public static function getInstance(): self
+    {
+        static $instance;
+        return $instance ?? ($instance = new self());
+    }
+
+    protected function initialize()
+    {
+        static $initialized = false;
+        if (!$initialized) {
+            if ($this->options['defaultPlugins']) {
+                foreach (static::defaultPlugins as $class) {
+                    $this->registerPlugin(new $class());
+                }
+            }
+
+            $initialized = true;
+        }
+    }
+
+    public function run(): bool
     {
         static $running = false;
-        if ($running) return false;
+        if ($running) {
+            return false;
+        }
         $running = true;
 
+        $this->initialize();
         $this->invokeGateway();
 
         return true;
     }
 
-    protected function setOptions(array $options): void
+    public function setOptions(array $options): void
     {
         $this->options = $this->cleanupOptions($options);
 
@@ -107,7 +118,7 @@ class Bot
         if (!empty($unknown)) {
             $unknownList = implode(', ', $unknown);
             user_error("Unknown argument(s): ${unknownList}", E_USER_WARNING);
-            array_filter($options, fn ($key) => !array_key_exists($key, $unknown) , ARRAY_FILTER_USE_KEY);
+            array_filter($options, fn($key) => !array_key_exists($key, $unknown), ARRAY_FILTER_USE_KEY);
         }
 
         // TODO: Add type validation
@@ -153,7 +164,9 @@ class Bot
     protected function runCommand(string $command, string $message, int $channelId, array $messageObject)
     {
         // Handle unknown commands
-        if (!isset($this->commands[$command])) return;
+        if (!isset($this->commands[$command])) {
+            return;
+        }
 
         // Parse which command to run and launch it
         $function = $this->commands[$command]['function'];
@@ -163,7 +176,7 @@ class Bot
 
     public function sendMessage(string $message, int $channelId): bool
     {
-        $res = $this->apiClient->post('channels/' . $channelId . '/messages', ([
+        $res = $this->getApiClient()->post('channels/' . $channelId . '/messages', ([
             'multipart' => [
                 [
                     'name' => 'content',
@@ -187,14 +200,13 @@ class Bot
     protected function invokeGateway()
     {
         if (!$this->gatewayUrl) {
-            $res = $this->apiClient->request('GET', 'gateway', []);
+            $res = $this->getApiClient()->get('gateway', []);
             if ($res->getStatusCode() != 200) {
                 throw new Exception('Error retrieving gateway');
             }
 
             $gatewayJson = json_decode($res->getBody()->getContents(), true);
             $this->gatewayUrl = $gatewayJson['url'];
-
             /* TODO: sharding
             // these params only come with if we GET gateway/bot/, which should not be cached
             $this->shards = $gatewayJson['shards'];
@@ -209,7 +221,9 @@ class Bot
 
         $this->loop = Factory::create();
         $this->connector = new Connector($this->loop);
-        $this->connector->__invoke($this->gatewayUrl . static::gatewayParams, [], $this->header)->then(function (WebSocket $conn) {
+        $this->connector->__invoke($this->gatewayUrl . static::gatewayParams, [], $this->header)->then(function (
+            WebSocket $conn
+        ) {
             $this->debugMsg('Connected to gateway.');
             $this->websocket = $conn;
             $this->waitingForHeartbeatACK = false;
@@ -304,7 +318,7 @@ class Bot
     protected function onGatewayClose(int $errorCode, string $errorMessage)
     {
         user_error("Gateway was unexpectedly closed, reason: ${errorCode} - ${errorMessage}" . PHP_EOL
-                   . "Attempting to reconnect...", E_USER_WARNING);
+            . "Attempting to reconnect...", E_USER_WARNING);
         $this->reconnectGateway();
     }
 
@@ -350,7 +364,8 @@ class Bot
         $this->websocket->send(json_encode($message));
     }
 
-    protected function addHeartbeatTimer(float $interval) {
+    protected function addHeartbeatTimer(float $interval)
+    {
         if ($this->heartbeatTimer) {
             user_error('New HeartbeatTimer while we still have an old one. Should not happen...', E_USER_NOTICE);
             $this->removeHeartbeatTimer();
@@ -386,8 +401,20 @@ class Bot
         }
     }
 
-    public function debugMsg(string $message) {
-        if (!$this->options['debug']) return;
+    public function getApiClient(): Client
+    {
+        static $apiClient;
+        return $apiClient ?? ($apiClient = new Client([
+                'base_uri' => 'https://discordapp.com/api/',
+                'headers' => $this->header,
+            ]));
+    }
+
+    public function debugMsg(string $message)
+    {
+        if (!$this->options['debug']) {
+            return;
+        }
 
         echo $message . PHP_EOL;
     }

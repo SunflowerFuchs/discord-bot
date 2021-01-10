@@ -214,9 +214,9 @@ class Bot
             $this->websocket = $conn;
             $this->waitingForHeartbeatACK = false;
 
-            $conn->on('message', [$this, 'onGatewayMessage']);
-            $conn->on('error', [$this, 'onGatewayError']);
-            $conn->on('close', [$this, 'onGatewayClose']);
+            $conn->on('message', fn($message) => $this->onGatewayMessage($message));
+            $conn->on('error', fn() => $this->onGatewayError());
+            $conn->on('close', fn($errorCode, $msg) => $this->onGatewayClose($errorCode, $msg));
         }, function (Exception $e) {
             user_error("Could not connect to gateway, reason: " . $e->getMessage(), E_USER_ERROR);
             die();

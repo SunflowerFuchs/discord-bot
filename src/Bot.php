@@ -356,7 +356,7 @@ class Bot
             $this->removeHeartbeatTimer();
         }
 
-        $this->heartbeatTimer = $this->loop->addPeriodicTimer($interval, [$this, 'sendHeartbeat']);
+        $this->heartbeatTimer = $this->loop->addPeriodicTimer($interval, fn() => $this->sendHeartbeat());
         // instantly send the first heartbeat
         $this->sendHeartbeat();
     }

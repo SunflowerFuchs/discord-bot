@@ -140,7 +140,7 @@ class Channel
             $data['recipients'] ?? []);
     }
 
-    public static function fromChannelId(string $channelId): ?self
+    public static function loadById(string $channelId): ?self
     {
         $res = Bot::getInstance()->getApiClient()->get("channels/${channelId}");
         if ($res->getStatusCode() !== 200) {

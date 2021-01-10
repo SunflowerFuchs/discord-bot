@@ -44,7 +44,7 @@ class User
         $this->public_flags = $data['public_flags'] ?? 0;
     }
 
-    public static function fromUserId(string $userId): ?self
+    public static function loadById(string $userId): ?self
     {
         $res = Bot::getInstance()->getApiClient()->get("users/${userId}");
         if ($res->getStatusCode() === 200) {

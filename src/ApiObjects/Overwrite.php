@@ -15,7 +15,7 @@ class Overwrite
     public function __construct(array $data)
     {
         $this->id = new Snowflake($data['id']);
-        $this->type = $data['type'];
+        $this->type = intval($data['type']);
         $this->allow = $data['allow'];
         $this->deny = $data['deny'];
     }

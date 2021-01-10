@@ -174,7 +174,7 @@ class Bot
         call_user_func([$instance, $function], $message, $channelId, $messageObject);
     }
 
-    public function sendMessage(string $message, int $channelId): bool
+    public function sendMessage(string $message, string $channelId): bool
     {
         $res = $this->getApiClient()->post('channels/' . $channelId . '/messages', ([
             'multipart' => [

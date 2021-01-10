@@ -17,7 +17,8 @@ class PingPlugin extends BasePlugin
         $author = !empty($messageObject['webhook_id']) ? null : new User($messageObject['author']);
         if ($author && $message == 'long') {
             $userId = $author->getId();
-            $response = "Hey <@${userId}>. I'm up and running, and having fun!";
+            $response = "Hey <@${userId}>. I'm up, running, and having fun!";
+            $response .= PHP_EOL . "We're currently vibing in <#${channelId}>.";
             $this->sendMessage($response, $channelId);
         } else {
             $this->sendMessage('Pong', $channelId);

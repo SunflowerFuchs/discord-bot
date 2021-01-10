@@ -12,6 +12,7 @@ use React\EventLoop\Factory;
 use React\EventLoop\StreamSelectLoop;
 use React\EventLoop\TimerInterface;
 use React\Promise\PromiseInterface;
+use SunflowerFuchs\DiscordBot\Helpers\EventManager;
 use SunflowerFuchs\DiscordBot\Plugins\BasePlugin;
 use SunflowerFuchs\DiscordBot\Plugins\PingPlugin;
 use SunflowerFuchs\DiscordBot\Plugins\UptimePlugin;
@@ -42,6 +43,7 @@ class Bot
     protected string $sessionId = '';
     protected bool $waitingForHeartbeatACK = false;
     protected bool $reconnect = false;
+    protected ?EventManager $events = null;
     protected ?Client $apiClient = null;
     protected ?StreamSelectLoop $loop = null;
     protected ?Connector $connector = null;
@@ -52,6 +54,7 @@ class Bot
     public function __construct(array $options)
     {
         $this->setOptions($options);
+        $this->events = $this->initEventManager();
 
         if ($this->options['defaultPlugins']) {
             foreach (static::defaultPlugins as $class) {
@@ -65,10 +68,12 @@ class Bot
         ]);
     }
 
-    public function run() : bool
+    public function run(): bool
     {
         static $running = false;
-        if ($running) return false;
+        if ($running) {
+            return false;
+        }
         $running = true;
 
         $this->invokeGateway();
@@ -107,7 +112,7 @@ class Bot
         if (!empty($unknown)) {
             $unknownList = implode(', ', $unknown);
             user_error("Unknown argument(s): ${unknownList}", E_USER_WARNING);
-            array_filter($options, fn ($key) => !array_key_exists($key, $unknown) , ARRAY_FILTER_USE_KEY);
+            array_filter($options, fn($key) => !array_key_exists($key, $unknown), ARRAY_FILTER_USE_KEY);
         }
 
         // TODO: Add type validation
@@ -123,6 +128,41 @@ class Bot
         $options['defaultPlugins'] = boolval(!empty($options['defaultPlugins']) ? $options['defaultPlugins'] : true);
         $options['debug'] = boolval($options['debug'] ?? false);
         return $options;
+    }
+
+    protected function initEventManager(): EventManager
+    {
+        $manager = EventManager::getInstance();
+
+        $manager->subscribe(EventManager::READY, function (array $message) {
+            $this->debugMsg("Gateway session initialized.");
+            $this->sessionId = $message['d']['session_id'];
+            $this->userId = $message['d']['user']['id'];
+        });
+
+        $manager->subscribe(EventManager::MESSAGE_CREATE, function (array $message) {
+            $msgContent = trim($message['d']['content']);
+            if (substr($msgContent, 0, strlen($this->options['prefix'])) !== $this->options['prefix']) {
+                return;
+            }
+
+            $content = substr($msgContent, strlen($this->options['prefix']));
+            $parts = explode(' ', $content);
+
+            $this->runCommand(
+                $parts[0],
+                $parts[1] ?? '',
+                $message['d']['channel_id'],
+                $message['d']
+            );
+        });
+
+        return $manager;
+    }
+
+    public function subscribeToEvent(string $event, callable $handler): void
+    {
+        $this->events->subscribe($event, $handler);
     }
 
     public function registerPlugin(BasePlugin $plugin)
@@ -153,7 +193,9 @@ class Bot
     protected function runCommand(string $command, string $message, int $channelId, array $messageObject)
     {
         // Handle unknown commands
-        if (!isset($this->commands[$command])) return;
+        if (!isset($this->commands[$command])) {
+            return;
+        }
 
         // Parse which command to run and launch it
         $function = $this->commands[$command]['function'];
@@ -194,7 +236,6 @@ class Bot
 
             $gatewayJson = json_decode($res->getBody()->getContents(), true);
             $this->gatewayUrl = $gatewayJson['url'];
-
             /* TODO: sharding
             // these params only come with if we GET gateway/bot/, which should not be cached
             $this->shards = $gatewayJson['shards'];
@@ -209,7 +250,9 @@ class Bot
 
         $this->loop = Factory::create();
         $this->connector = new Connector($this->loop);
-        $this->connector->__invoke($this->gatewayUrl . static::gatewayParams, [], $this->header)->then(function (WebSocket $conn) {
+        $this->connector->__invoke($this->gatewayUrl . static::gatewayParams, [], $this->header)->then(function (
+            WebSocket $conn
+        ) {
             $this->debugMsg('Connected to gateway.');
             $this->websocket = $conn;
             $this->waitingForHeartbeatACK = false;
@@ -263,29 +306,7 @@ class Bot
                 $this->reconnectGateway(boolval($message['d']) ?? true);
                 break;
             case 0: // "0 Dispatch"-Payload
-                switch ($message['t']) {
-                    case 'READY' :
-                        $this->debugMsg("Gateway session initialized.");
-                        $this->sessionId = $message['d']['session_id'];
-                        $this->userId = $message['d']['user']['id'];
-                        break;
-                    case 'MESSAGE_CREATE':
-                        if (strpos(trim($message['d']['content']), $this->options['prefix']) === 0) {
-                            $content = substr(trim($message['d']['content']), strlen($this->options['prefix']));
-                            $parts = explode(' ', $content);
-
-                            $this->runCommand(
-                                $parts[0],
-                                $parts[1] ?? '',
-                                $message['d']['channel_id'],
-                                $message['d']
-                            );
-                        }
-                        break;
-                    case 'GUILD_CREATE':
-                        // on connect with server
-                        break;
-                }
+                $this->events->publish($message['t'], $message);
                 break;
             default:
                 user_error("Unknown Opcode ${message['op']} received.", E_USER_NOTICE);
@@ -304,7 +325,7 @@ class Bot
     protected function onGatewayClose(int $errorCode, string $errorMessage)
     {
         user_error("Gateway was unexpectedly closed, reason: ${errorCode} - ${errorMessage}" . PHP_EOL
-                   . "Attempting to reconnect...", E_USER_WARNING);
+            . "Attempting to reconnect...", E_USER_WARNING);
         $this->reconnectGateway();
     }
 
@@ -350,7 +371,8 @@ class Bot
         $this->websocket->send(json_encode($message));
     }
 
-    protected function addHeartbeatTimer(float $interval) {
+    protected function addHeartbeatTimer(float $interval)
+    {
         if ($this->heartbeatTimer) {
             user_error('New HeartbeatTimer while we still have an old one. Should not happen...', E_USER_NOTICE);
             $this->removeHeartbeatTimer();
@@ -386,8 +408,11 @@ class Bot
         }
     }
 
-    public function debugMsg(string $message) {
-        if (!$this->options['debug']) return;
+    public function debugMsg(string $message)
+    {
+        if (!$this->options['debug']) {
+            return;
+        }
 
         echo $message . PHP_EOL;
     }

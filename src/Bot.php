@@ -11,9 +11,8 @@ use Ratchet\RFC6455\Messaging\Message as RatchetMessage;
 use React\EventLoop\Factory;
 use React\EventLoop\StreamSelectLoop;
 use React\EventLoop\TimerInterface;
-use React\Promise\PromiseInterface;
-use SunflowerFuchs\DiscordBot\Helpers\EventManager;
 use SunflowerFuchs\DiscordBot\ApiObjects\Message;
+use SunflowerFuchs\DiscordBot\Helpers\EventManager;
 use SunflowerFuchs\DiscordBot\Plugins\BasePlugin;
 use SunflowerFuchs\DiscordBot\Plugins\PingPlugin;
 use SunflowerFuchs\DiscordBot\Plugins\UptimePlugin;
@@ -35,20 +34,13 @@ class Bot
         'Authorization' => 'Bot {Token}',
         'Content-Type' => 'multipart/form-data',
     ];
-    protected int $intents =
-        1 << 9
-        | 1 << 10
-        | 1 << 11;
     protected int $sequence = 0;
     protected int $userId = 0;
-    protected string $gatewayUrl = '';
     protected string $sessionId = '';
     protected bool $waitingForHeartbeatACK = false;
     protected bool $reconnect = false;
     protected ?EventManager $events = null;
     protected ?StreamSelectLoop $loop = null;
-    protected ?Connector $connector = null;
-    protected ?PromiseInterface $socket = null;
     protected ?WebSocket $websocket = null;
     protected ?TimerInterface $heartbeatTimer = null;
 
@@ -156,20 +148,10 @@ class Bot
         });
 
         $manager->subscribe(EventManager::MESSAGE_CREATE, function (array $message) {
-            $msgContent = trim($message['d']['content']);
-            if (substr($msgContent, 0, strlen($this->options['prefix'])) !== $this->options['prefix']) {
-                return;
+            $msg = new Message($message['d']);
+            if ($msg->isCommand()) {
+                $this->runCommand($msg->getCommand(), $msg);
             }
-
-            $content = substr($msgContent, strlen($this->options['prefix']));
-            $parts = explode(' ', $content);
-
-            $this->runCommand(
-                $parts[0],
-                $parts[1] ?? '',
-                $message['d']['channel_id'],
-                $message['d']
-            );
         });
 
         return $manager;
@@ -201,8 +183,6 @@ class Bot
                 'instance' => &$this->plugins[$class],
             ];
         }
-
-        $this->intents |= $plugin->intents;
     }
 
     protected function runCommand(string $command, Message $messageObject)
@@ -243,14 +223,15 @@ class Bot
 
     protected function invokeGateway()
     {
-        if (!$this->gatewayUrl) {
+        static $gatewayUrl, $connector;
+        if (!$gatewayUrl) {
             $res = $this->getApiClient()->get('gateway', []);
             if ($res->getStatusCode() != 200) {
                 throw new Exception('Error retrieving gateway');
             }
 
             $gatewayJson = json_decode($res->getBody()->getContents(), true);
-            $this->gatewayUrl = $gatewayJson['url'];
+            $gatewayUrl = $gatewayJson['url'];
             /* TODO: sharding
             // these params only come with if we GET gateway/bot/, which should not be cached
             $this->shards = $gatewayJson['shards'];
@@ -262,10 +243,12 @@ class Bot
             }
             */
         }
+        if (!$connector) {
+            $connector = new Connector($this->loop);
+        }
 
         $this->loop = Factory::create();
-        $this->connector = new Connector($this->loop);
-        $this->connector->__invoke($this->gatewayUrl . static::gatewayParams, [], $this->header)->then(function (
+        $connector->__invoke($gatewayUrl . static::gatewayParams, [], $this->header)->then(function (
             WebSocket $conn
         ) {
             $this->debugMsg('Connected to gateway.');
@@ -365,7 +348,7 @@ class Bot
                 'op' => 2,
                 'd' => [
                     'token' => $this->options['token'],
-                    'intents' => $this->intents,
+                    'intents' => $this->events->calculateIntent(),
                     'properties' => [
                         '$os' => PHP_OS,
                         '$browser' => $this->header['User-Agent'],

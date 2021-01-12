@@ -20,14 +20,6 @@ abstract class BasePlugin
      */
     protected array $commands = [];
 
-    /**
-     * An int containing all intents this plugin needs
-     * @see https://discord.com/developers/docs/topics/gateway#gateway-intents
-     * @example 1 << 9 for message sending/receiving
-     * @var int $intents
-     */
-    public int $intents = 0;
-
     public function init(Bot $bot): self
     {
         // TODO: Prevent plugins from overwriting this

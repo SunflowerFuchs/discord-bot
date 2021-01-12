@@ -7,12 +7,13 @@ use GuzzleHttp\Client;
 use InvalidArgumentException;
 use Ratchet\Client\Connector;
 use Ratchet\Client\WebSocket;
-use Ratchet\RFC6455\Messaging\Message;
+use Ratchet\RFC6455\Messaging\Message as RatchetMessage;
 use React\EventLoop\Factory;
 use React\EventLoop\StreamSelectLoop;
 use React\EventLoop\TimerInterface;
 use React\Promise\PromiseInterface;
 use SunflowerFuchs\DiscordBot\Helpers\EventManager;
+use SunflowerFuchs\DiscordBot\ApiObjects\Message;
 use SunflowerFuchs\DiscordBot\Plugins\BasePlugin;
 use SunflowerFuchs\DiscordBot\Plugins\PingPlugin;
 use SunflowerFuchs\DiscordBot\Plugins\UptimePlugin;
@@ -24,6 +25,7 @@ class Bot
         PingPlugin::class,
         UptimePlugin::class,
     ];
+    public const BaseImageUrl = 'https://cdn.discordapp.com/';
 
     protected array $options = [];
     protected array $plugins = [];
@@ -44,28 +46,35 @@ class Bot
     protected bool $waitingForHeartbeatACK = false;
     protected bool $reconnect = false;
     protected ?EventManager $events = null;
-    protected ?Client $apiClient = null;
     protected ?StreamSelectLoop $loop = null;
     protected ?Connector $connector = null;
     protected ?PromiseInterface $socket = null;
     protected ?WebSocket $websocket = null;
     protected ?TimerInterface $heartbeatTimer = null;
 
-    public function __construct(array $options)
+    private function __construct()
     {
-        $this->setOptions($options);
-        $this->events = $this->initEventManager();
+    }
 
-        if ($this->options['defaultPlugins']) {
-            foreach (static::defaultPlugins as $class) {
-                $this->registerPlugin(new $class());
+    public static function getInstance(): self
+    {
+        static $instance;
+        return $instance ?? ($instance = new self());
+    }
+
+    protected function initialize()
+    {
+        static $initialized = false;
+        if (!$initialized) {
+            if ($this->options['defaultPlugins']) {
+                foreach (static::defaultPlugins as $class) {
+                    $this->registerPlugin(new $class());
+                }
             }
-        }
+            $this->events = $this->initEventManager();
 
-        $this->apiClient = new Client([
-            'base_uri' => 'https://discordapp.com/api/',
-            'headers' => $this->header,
-        ]);
+            $initialized = true;
+        }
     }
 
     public function run(): bool
@@ -76,12 +85,13 @@ class Bot
         }
         $running = true;
 
+        $this->initialize();
         $this->invokeGateway();
 
         return true;
     }
 
-    protected function setOptions(array $options): void
+    public function setOptions(array $options): void
     {
         $this->options = $this->cleanupOptions($options);
 
@@ -128,6 +138,11 @@ class Bot
         $options['defaultPlugins'] = boolval(!empty($options['defaultPlugins']) ? $options['defaultPlugins'] : true);
         $options['debug'] = boolval($options['debug'] ?? false);
         return $options;
+    }
+
+    public function getPrefix(): string
+    {
+        return $this->options['prefix'];
     }
 
     protected function initEventManager(): EventManager
@@ -190,7 +205,7 @@ class Bot
         $this->intents |= $plugin->intents;
     }
 
-    protected function runCommand(string $command, string $message, int $channelId, array $messageObject)
+    protected function runCommand(string $command, Message $messageObject)
     {
         // Handle unknown commands
         if (!isset($this->commands[$command])) {
@@ -200,12 +215,12 @@ class Bot
         // Parse which command to run and launch it
         $function = $this->commands[$command]['function'];
         $instance = $this->commands[$command]['instance'];
-        call_user_func([$instance, $function], $message, $channelId, $messageObject);
+        call_user_func([$instance, $function], $messageObject);
     }
 
-    public function sendMessage(string $message, int $channelId): bool
+    public function sendMessage(string $message, string $channelId): bool
     {
-        $res = $this->apiClient->post('channels/' . $channelId . '/messages', ([
+        $res = $this->getApiClient()->post('channels/' . $channelId . '/messages', ([
             'multipart' => [
                 [
                     'name' => 'content',
@@ -229,7 +244,7 @@ class Bot
     protected function invokeGateway()
     {
         if (!$this->gatewayUrl) {
-            $res = $this->apiClient->request('GET', 'gateway', []);
+            $res = $this->getApiClient()->get('gateway', []);
             if ($res->getStatusCode() != 200) {
                 throw new Exception('Error retrieving gateway');
             }
@@ -257,9 +272,9 @@ class Bot
             $this->websocket = $conn;
             $this->waitingForHeartbeatACK = false;
 
-            $conn->on('message', [$this, 'onGatewayMessage']);
-            $conn->on('error', [$this, 'onGatewayError']);
-            $conn->on('close', [$this, 'onGatewayClose']);
+            $conn->on('message', fn($message) => $this->onGatewayMessage($message));
+            $conn->on('error', fn() => $this->onGatewayError());
+            $conn->on('close', fn($errorCode, $msg) => $this->onGatewayClose($errorCode, $msg));
         }, function (Exception $e) {
             user_error("Could not connect to gateway, reason: " . $e->getMessage(), E_USER_ERROR);
             die();
@@ -285,7 +300,7 @@ class Bot
         $this->loop->stop();
     }
 
-    protected function onGatewayMessage(Message $receivedMessage)
+    protected function onGatewayMessage(RatchetMessage $receivedMessage)
     {
         $message = json_decode($receivedMessage->getPayload(), true);
         $this->sequence = $message['s'] ?? $this->sequence;
@@ -378,7 +393,7 @@ class Bot
             $this->removeHeartbeatTimer();
         }
 
-        $this->heartbeatTimer = $this->loop->addPeriodicTimer($interval, [$this, 'sendHeartbeat']);
+        $this->heartbeatTimer = $this->loop->addPeriodicTimer($interval, fn() => $this->sendHeartbeat());
         // instantly send the first heartbeat
         $this->sendHeartbeat();
     }
@@ -406,6 +421,15 @@ class Bot
             $this->websocket->send(json_encode($answer));
             $this->waitingForHeartbeatACK = true;
         }
+    }
+
+    public function getApiClient(): Client
+    {
+        static $apiClient;
+        return $apiClient ?? ($apiClient = new Client([
+                'base_uri' => 'https://discordapp.com/api/',
+                'headers' => $this->header,
+            ]));
     }
 
     public function debugMsg(string $message)

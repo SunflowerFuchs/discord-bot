@@ -2,6 +2,7 @@
 
 namespace SunflowerFuchs\DiscordBot\Plugins;
 
+use InvalidArgumentException;
 use SunflowerFuchs\DiscordBot\Bot;
 
 abstract class BasePlugin
@@ -35,7 +36,7 @@ abstract class BasePlugin
         return $this;
     }
 
-    protected function sendMessage(string $message, int $channelId): bool
+    protected function sendMessage(string $message, string $channelId): bool
     {
         return $this->bot->sendMessage($message, $channelId);
     }
@@ -49,7 +50,7 @@ abstract class BasePlugin
     {
         foreach ($this->commands as $function) {
             if (!is_callable([$this, $function])) {
-                throw new \InvalidArgumentException("Undefined function '${function}' in class " . static::class);
+                throw new InvalidArgumentException("Undefined function '${function}' in class " . static::class);
             }
         }
     }

@@ -190,9 +190,7 @@ class Message
         $this->attachments = array_map(fn($data) => new Attachment($data), $data['attachments']);
         $this->reactions = array_map(fn(array $reaction) => new Reaction($reaction), $data['reactions'] ?? []);
         $this->stickers = array_map(fn(array $sticker) => new Sticker($data), $data['stickers'] ?? []);
-
-        // TODO: implement Embeds
-        $this->embeds = $data['embeds'] ?? [];
+        $this->embeds = array_map(fn($embed) => new Embed($embed), $data['embeds'] ?? []);
     }
 
     /**

@@ -188,11 +188,10 @@ class Message
         $this->mention_roles = array_map(fn($snowflake) => new Snowflake($snowflake), $data['mention_roles']);
         $this->mention_channels = array_map(fn($data) => new Mention($data), $data['mention_channels'] ?? []);
         $this->attachments = array_map(fn($data) => new Attachment($data), $data['attachments']);
+        $this->reactions = array_map(fn(array $reaction) => new Reaction($reaction), $data['reactions'] ?? []);
 
         // TODO: implement Embeds
         $this->embeds = $data['embeds'] ?? [];
-        // TODO: implement Reactions
-        $this->reactions = $data['reactions'] ?? [];
         // TODO: implement Stickers
         $this->stickers = $data['stickers'] ?? [];
     }

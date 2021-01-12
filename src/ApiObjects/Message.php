@@ -189,11 +189,10 @@ class Message
         $this->mention_channels = array_map(fn($data) => new Mention($data), $data['mention_channels'] ?? []);
         $this->attachments = array_map(fn($data) => new Attachment($data), $data['attachments']);
         $this->reactions = array_map(fn(array $reaction) => new Reaction($reaction), $data['reactions'] ?? []);
+        $this->stickers = array_map(fn(array $sticker) => new Sticker($data), $data['stickers'] ?? []);
 
         // TODO: implement Embeds
         $this->embeds = $data['embeds'] ?? [];
-        // TODO: implement Stickers
-        $this->stickers = $data['stickers'] ?? [];
     }
 
     /**

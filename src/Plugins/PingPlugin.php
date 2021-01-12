@@ -4,7 +4,7 @@
 namespace SunflowerFuchs\DiscordBot\Plugins;
 
 
-use SunflowerFuchs\DiscordBot\ApiObjects\User;
+use SunflowerFuchs\DiscordBot\ApiObjects\Message;
 
 class PingPlugin extends BasePlugin
 {
@@ -12,10 +12,11 @@ class PingPlugin extends BasePlugin
         'ping' => 'ping'
     ];
 
-    public function ping(string $message, string $channelId, array $messageObject)
+    public function ping(Message $msg)
     {
-        $author = !empty($messageObject['webhook_id']) ? null : new User($messageObject['author']);
-        if ($author && $message == 'long') {
+        $channelId = $msg->getChannelId();
+        if ($msg->isUserMessage() && $msg->getContent() == 'long') {
+            $author = $msg->getAuthor();
             $userId = $author->getId();
             $response = "Hey <@${userId}>. I'm up, running, and having fun!";
             $response .= PHP_EOL . "We're currently vibing in <#${channelId}>.";

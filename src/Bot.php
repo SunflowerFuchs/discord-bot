@@ -7,11 +7,12 @@ use GuzzleHttp\Client;
 use InvalidArgumentException;
 use Ratchet\Client\Connector;
 use Ratchet\Client\WebSocket;
-use Ratchet\RFC6455\Messaging\Message;
+use Ratchet\RFC6455\Messaging\Message as RatchetMessage;
 use React\EventLoop\Factory;
 use React\EventLoop\StreamSelectLoop;
 use React\EventLoop\TimerInterface;
 use React\Promise\PromiseInterface;
+use SunflowerFuchs\DiscordBot\ApiObjects\Message;
 use SunflowerFuchs\DiscordBot\Plugins\BasePlugin;
 use SunflowerFuchs\DiscordBot\Plugins\PingPlugin;
 use SunflowerFuchs\DiscordBot\Plugins\UptimePlugin;
@@ -136,6 +137,11 @@ class Bot
         return $options;
     }
 
+    public function getPrefix(): string
+    {
+        return $this->options['prefix'];
+    }
+
     public function registerPlugin(BasePlugin $plugin)
     {
         $class = get_class($plugin);
@@ -161,7 +167,7 @@ class Bot
         $this->intents |= $plugin->intents;
     }
 
-    protected function runCommand(string $command, string $message, int $channelId, array $messageObject)
+    protected function runCommand(string $command, Message $messageObject)
     {
         // Handle unknown commands
         if (!isset($this->commands[$command])) {
@@ -171,7 +177,7 @@ class Bot
         // Parse which command to run and launch it
         $function = $this->commands[$command]['function'];
         $instance = $this->commands[$command]['instance'];
-        call_user_func([$instance, $function], $message, $channelId, $messageObject);
+        call_user_func([$instance, $function], $messageObject);
     }
 
     public function sendMessage(string $message, string $channelId): bool
@@ -256,7 +262,7 @@ class Bot
         $this->loop->stop();
     }
 
-    protected function onGatewayMessage(Message $receivedMessage)
+    protected function onGatewayMessage(RatchetMessage $receivedMessage)
     {
         $message = json_decode($receivedMessage->getPayload(), true);
         $this->sequence = $message['s'] ?? $this->sequence;
@@ -284,15 +290,11 @@ class Bot
                         $this->userId = $message['d']['user']['id'];
                         break;
                     case 'MESSAGE_CREATE':
-                        if (strpos(trim($message['d']['content']), $this->options['prefix']) === 0) {
-                            $content = substr(trim($message['d']['content']), strlen($this->options['prefix']));
-                            $parts = explode(' ', $content);
-
+                        $msg = new Message($message['d']);
+                        if ($msg->isCommand()) {
                             $this->runCommand(
-                                $parts[0],
-                                $parts[1] ?? '',
-                                $message['d']['channel_id'],
-                                $message['d']
+                                $msg->getCommand(),
+                                $msg
                             );
                         }
                         break;

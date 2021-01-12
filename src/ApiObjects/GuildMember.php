@@ -51,7 +51,7 @@ class GuildMember
         $this->deaf = $data['deaf'] ?? false;
         $this->mute = $data['mute'] ?? false;
         $this->pending = $data['pending'] ?? false;
-        $this->roles = array_map(fn(array $roleData) => new Role($roleData), $data['roles'] ?? []);
+        $this->roles = array_map(fn(string $snowflake) => new Snowflake($snowflake), $data['roles'] ?? []);
     }
 
     public static function loadById(string $guildId, string $userId): ?self

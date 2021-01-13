@@ -224,6 +224,9 @@ class Bot
     protected function invokeGateway()
     {
         static $gatewayUrl, $connector;
+        if (!$this->loop) {
+            $this->loop = Factory::create();
+        }
         if (!$gatewayUrl) {
             $res = $this->getApiClient()->get('gateway', []);
             if ($res->getStatusCode() != 200) {
@@ -247,7 +250,6 @@ class Bot
             $connector = new Connector($this->loop);
         }
 
-        $this->loop = Factory::create();
         $connector->__invoke($gatewayUrl . static::gatewayParams, [], $this->header)->then(function (
             WebSocket $conn
         ) {

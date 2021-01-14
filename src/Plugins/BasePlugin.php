@@ -7,8 +7,6 @@ use SunflowerFuchs\DiscordBot\Bot;
 
 abstract class BasePlugin
 {
-    protected Bot $bot;
-
     /**
      * An array containing all commands and their corresponding function calls
      *
@@ -20,20 +18,18 @@ abstract class BasePlugin
      */
     protected array $commands = [];
 
-    public function init(Bot $bot): self
+    public function init(): self
     {
-        // TODO: Prevent plugins from overwriting this
         $this->validateFunctions();
-        $this->bot = $bot;
         return $this;
     }
 
     protected function sendMessage(string $message, string $channelId): bool
     {
-        return $this->bot->sendMessage($message, $channelId);
+        return Bot::getInstance()->sendMessage($message, $channelId);
     }
 
-    public function getCommands()
+    public function getCommands(): array
     {
         return $this->commands;
     }

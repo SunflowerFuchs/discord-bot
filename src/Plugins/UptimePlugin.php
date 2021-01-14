@@ -6,7 +6,6 @@ namespace SunflowerFuchs\DiscordBot\Plugins;
 
 use DateTime;
 use SunflowerFuchs\DiscordBot\ApiObjects\Message;
-use SunflowerFuchs\DiscordBot\Bot;
 
 class UptimePlugin extends BasePlugin
 {
@@ -16,10 +15,10 @@ class UptimePlugin extends BasePlugin
 
     protected DateTime $initTime;
 
-    public function init(Bot $bot): BasePlugin
+    public function init(): self
     {
         $this->initTime = new DateTime();
-        return parent::init($bot);
+        return parent::init();
     }
 
     public function showUptime(Message $message)

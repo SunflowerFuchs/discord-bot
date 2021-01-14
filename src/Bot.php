@@ -170,7 +170,7 @@ class Bot
             return;
         }
 
-        $this->plugins[$class] = $plugin->init($this);
+        $this->plugins[$class] = $plugin->init();
         foreach ($this->plugins[$class]->getCommands() as $command => $function) {
             if (isset($this->commands[$command])) {
                 $oldClass = $this->commands[$command]['plugin'];

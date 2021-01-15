@@ -5,12 +5,14 @@ namespace SunflowerFuchs\DiscordBot\Plugins;
 
 
 use SunflowerFuchs\DiscordBot\ApiObjects\Message;
+use SunflowerFuchs\DiscordBot\Bot;
 
 class PingPlugin extends BasePlugin
 {
-    protected array $commands = [
-        'ping' => 'ping'
-    ];
+    public function init()
+    {
+        Bot::getInstance()->registerCommand('ping', fn($msg) => $this->ping($msg));
+    }
 
     public function ping(Message $msg)
     {

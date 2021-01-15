@@ -180,19 +180,19 @@ class Bot
             return;
         }
 
-        $this->plugins[$class] = $plugin->init();
-        foreach ($this->plugins[$class]->getCommands() as $command => $function) {
-            if (isset($this->commands[$command])) {
-                $oldClass = $this->commands[$command]['plugin'];
-                user_error("$class redefines $command, overwriting $oldClass", E_USER_WARNING);
-            }
+        $this->plugins[$class] = $plugin;
+        $this->plugins[$class]->init();
+    }
 
-            $this->commands[$command] = [
-                'plugin' => $class,
-                'function' => $function,
-                'instance' => &$this->plugins[$class],
-            ];
+    public function registerCommand(string $command, callable $handler): bool
+    {
+        if (isset($this->commands[$command])) {
+            user_error("Command '${command}' already registered", E_USER_ERROR);
+            return false;
         }
+
+        $this->commands[$command] = $handler;
+        return true;
     }
 
     protected function runCommand(string $command, Message $messageObject)
@@ -202,10 +202,7 @@ class Bot
             return;
         }
 
-        // Parse which command to run and launch it
-        $function = $this->commands[$command]['function'];
-        $instance = $this->commands[$command]['instance'];
-        call_user_func([$instance, $function], $messageObject);
+        call_user_func($this->commands[$command], $messageObject);
     }
 
     public function sendMessage(string $message, string $channelId): bool

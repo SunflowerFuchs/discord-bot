@@ -37,8 +37,9 @@ class Bot
     protected int $sequence = 0;
     protected int $userId = 0;
     protected string $sessionId = '';
-    protected bool $waitingForHeartbeatACK = false;
+    protected bool $keepRunning = false;
     protected bool $reconnect = false;
+    protected bool $waitingForHeartbeatACK = false;
     protected ?EventManager $events = null;
     protected ?StreamSelectLoop $loop = null;
     protected ?WebSocket $websocket = null;
@@ -71,15 +72,24 @@ class Bot
 
     public function run(): bool
     {
-        static $running = false;
-        if ($running) {
+        if ($this->keepRunning) {
+            // The bot is already running
             return false;
         }
-        $running = true;
+        $this->keepRunning = true;
 
         $this->initialize();
-        $this->invokeGateway();
+        do {
+            $this->invokeGateway();
+        } while ($this->keepRunning);
 
+        return true;
+    }
+
+    public function stop(): bool
+    {
+        $this->keepRunning = false;
+        $this->closeGateway();
         return true;
     }
 
@@ -272,7 +282,6 @@ class Bot
     {
         $this->reconnect = $sendReconnect;
         $this->closeGateway(4100, 'Going to reconnect.');
-        $this->invokeGateway();
     }
 
     protected function closeGateway(int $code = 4100, string $reason = '')

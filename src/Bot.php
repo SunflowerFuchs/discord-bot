@@ -325,8 +325,8 @@ class Bot
 
     protected function onGatewayClose(int $errorCode, string $errorMessage)
     {
-        user_error("Gateway was unexpectedly closed, reason: ${errorCode} - ${errorMessage}" . PHP_EOL
-            . "Attempting to reconnect...", E_USER_WARNING);
+        user_error("Gateway was unexpectedly closed, reason: ${errorCode} - ${errorMessage}", E_USER_WARNING);
+        $this->debugMsg("Attempting to reconnect after unexpected disconnect...");
         $this->reconnectGateway();
     }
 

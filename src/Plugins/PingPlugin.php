@@ -14,7 +14,7 @@ class PingPlugin extends BasePlugin
         Bot::getInstance()->registerCommand('ping', fn($msg) => $this->ping($msg));
     }
 
-    public function ping(Message $msg)
+    protected function ping(Message $msg)
     {
         $channelId = $msg->getChannelId();
         if ($msg->isUserMessage() && $msg->getContent() == 'long') {

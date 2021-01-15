@@ -18,7 +18,7 @@ class UptimePlugin extends BasePlugin
         Bot::getInstance()->registerCommand('uptime', fn($msg) => $this->showUptime($msg));
     }
 
-    public function showUptime(Message $message)
+    protected function showUptime(Message $message)
     {
         $startTime = $this->initTime->format('Y-m-d H:i T');
         $uptime = (new DateTime())->diff($this->initTime);

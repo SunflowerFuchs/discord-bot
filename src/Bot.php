@@ -68,7 +68,7 @@ class Bot implements LoggerAwareInterface
         return $instance ?? ($instance = new self());
     }
 
-    protected function initialize()
+    protected function initialize(): void
     {
         static $initialized = false;
         if (!$initialized) {
@@ -192,7 +192,7 @@ class Bot implements LoggerAwareInterface
         return true;
     }
 
-    protected function runCommand(string $command, Message $messageObject)
+    protected function runCommand(string $command, Message $messageObject): void
     {
         // Handle unknown commands
         if (!isset($this->commands[$command])) {
@@ -225,7 +225,7 @@ class Bot implements LoggerAwareInterface
         return true;
     }
 
-    protected function invokeGateway()
+    protected function invokeGateway(): void
     {
         static $gatewayUrl, $connector;
         if (!$gatewayUrl) {
@@ -269,13 +269,13 @@ class Bot implements LoggerAwareInterface
         $this->loop->run();
     }
 
-    protected function reconnectGateway(bool $sendReconnect = true)
+    protected function reconnectGateway(bool $sendReconnect = true): void
     {
         $this->reconnect = $sendReconnect;
         $this->closeGateway(4100, 'Going to reconnect.');
     }
 
-    protected function closeGateway(int $code = 4100, string $reason = '')
+    protected function closeGateway(int $code = 4100, string $reason = ''): void
     {
         $this->removeHeartbeatTimer();
 
@@ -285,7 +285,7 @@ class Bot implements LoggerAwareInterface
         $this->loop->stop();
     }
 
-    protected function onGatewayMessage(RatchetMessage $receivedMessage)
+    protected function onGatewayMessage(RatchetMessage $receivedMessage): void
     {
         $message = json_decode($receivedMessage->getPayload(), true);
         $this->sequence = $message['s'] ?? $this->sequence;
@@ -316,20 +316,20 @@ class Bot implements LoggerAwareInterface
         }
     }
 
-    protected function onGatewayError()
+    protected function onGatewayError(): void
     {
         $this->logger->warning("Gateway sent an unexpected error, attempting to reconnect...");
         $this->reconnectGateway();
     }
 
-    protected function onGatewayClose(int $errorCode, string $errorMessage)
+    protected function onGatewayClose(int $errorCode, string $errorMessage): void
     {
         $this->logger->warning("Gateway was unexpectedly closed, reason: ${errorCode} - ${errorMessage}");
         $this->logger->info("Attempting to reconnect after unexpected disconnect...");
         $this->reconnectGateway();
     }
 
-    protected function identify()
+    protected function identify(): void
     {
         if ($this->reconnect) {
             $this->reconnect = false;
@@ -371,7 +371,7 @@ class Bot implements LoggerAwareInterface
         $this->websocket->send(json_encode($message));
     }
 
-    protected function addHeartbeatTimer(float $interval)
+    protected function addHeartbeatTimer(float $interval): void
     {
         if ($this->heartbeatTimer) {
             $this->logger->notice('New HeartbeatTimer while we still have an old one. Should not happen...');
@@ -383,7 +383,7 @@ class Bot implements LoggerAwareInterface
         $this->sendHeartbeat();
     }
 
-    protected function removeHeartbeatTimer()
+    protected function removeHeartbeatTimer(): void
     {
         if (!$this->heartbeatTimer) {
             return;
@@ -393,7 +393,7 @@ class Bot implements LoggerAwareInterface
         $this->heartbeatTimer = null;
     }
 
-    protected function sendHeartbeat()
+    protected function sendHeartbeat(): void
     {
         if ($this->waitingForHeartbeatACK) {
             $this->logger->notice("No ACK for Heartbeat received. Attempting to reconnect...");

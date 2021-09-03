@@ -4,6 +4,8 @@ namespace SunflowerFuchs\DiscordBot;
 
 use Exception;
 use GuzzleHttp\Client;
+use Psr\Log\LoggerAwareInterface;
+use Psr\Log\LoggerInterface;
 use Ratchet\Client\Connector;
 use Ratchet\Client\WebSocket;
 use Ratchet\RFC6455\Messaging\Message as RatchetMessage;
@@ -12,6 +14,7 @@ use React\EventLoop\StreamSelectLoop;
 use React\EventLoop\TimerInterface;
 use SunflowerFuchs\DiscordBot\ApiObjects\Message;
 use SunflowerFuchs\DiscordBot\Helpers\BotOptions;
+use SunflowerFuchs\DiscordBot\Helpers\EchoLogger;
 use SunflowerFuchs\DiscordBot\Helpers\EventManager;
 use SunflowerFuchs\DiscordBot\Plugins\BasePlugin;
 use SunflowerFuchs\DiscordBot\Plugins\PingPlugin;
@@ -23,7 +26,7 @@ use Symfony\Component\OptionsResolver\Exception\NoSuchOptionException;
 use Symfony\Component\OptionsResolver\Exception\OptionDefinitionException;
 use Symfony\Component\OptionsResolver\Exception\UndefinedOptionsException;
 
-class Bot
+class Bot implements LoggerAwareInterface
 {
     protected const gatewayParams = '?v=8&encoding=json';
     protected const defaultPlugins = [
@@ -46,13 +49,17 @@ class Bot
     protected bool $keepRunning = false;
     protected bool $reconnect = false;
     protected bool $waitingForHeartbeatACK = false;
-    protected ?EventManager $events = null;
-    protected ?StreamSelectLoop $loop = null;
+    protected EventManager $eventManager;
+    protected StreamSelectLoop $loop;
+    protected LoggerInterface $logger;
     protected ?WebSocket $websocket = null;
     protected ?TimerInterface $heartbeatTimer = null;
 
     private function __construct()
     {
+        $this->logger = new EchoLogger();
+        $this->eventManager = EventManager::getInstance();
+        $this->loop = Factory::create();
     }
 
     public static function getInstance(): self
@@ -73,7 +80,7 @@ class Bot
 
             $this->header['Authorization'] = 'Bot ' . $this->options['token'];
 
-            $this->events = $this->initEventManager();
+            $this->initEventManager();
 
             $initialized = true;
         }
@@ -117,9 +124,10 @@ class Bot
         // Moved the OptionsResolver into its own class for readability
         $this->options = (new BotOptions())->resolve($options);
 
-        $redacted = array_replace($this->options, ['token' => 'XXX']);
-        $flattened = var_export($redacted, true);
-        $this->log("Bot initialized with the following options: ${flattened}", LOG_DEBUG);
+        if ($this->logger instanceof EchoLogger) {
+            $this->setLogger(new EchoLogger($this->options['loglevel']));
+        }
+        $this->logger->debug("Options set", ['options' => $this->options]);
     }
 
     public function getPrefix(): string
@@ -127,47 +135,56 @@ class Bot
         return $this->options['prefix'];
     }
 
-    protected function initEventManager(): EventManager
+    public function setLogger(LoggerInterface $logger): void
     {
-        $manager = EventManager::getInstance();
+        $this->logger = $logger;
+    }
 
-        $manager->subscribe(EventManager::READY, function (array $message) {
-            $this->log("Gateway session initialized.");
+    public function getLogger(): LoggerInterface
+    {
+        return $this->logger;
+    }
+
+    protected function initEventManager(): void
+    {
+        $this->eventManager->subscribe(EventManager::READY, function (array $message) {
+            $this->logger->info("Gateway session initialized.");
             $this->sessionId = $message['d']['session_id'];
             $this->userId = $message['d']['user']['id'];
         });
 
-        $manager->subscribe(EventManager::MESSAGE_CREATE, function (array $message) {
+        $this->eventManager->subscribe(EventManager::MESSAGE_CREATE, function (array $message) {
             $msg = new Message($message['d']);
             if ($msg->isCommand()) {
                 $this->runCommand($msg->getCommand(), $msg);
             }
         });
-
-        return $manager;
     }
 
     public function subscribeToEvent(string $event, callable $handler): void
     {
-        $this->events->subscribe($event, $handler);
+        $this->eventManager->subscribe($event, $handler);
     }
 
-    public function registerPlugin(BasePlugin $plugin)
+    public function registerPlugin(BasePlugin $plugin): bool
     {
         $class = get_class($plugin);
         if (isset($this->plugins[$class])) {
-            user_error("Plugin ${class} is already registered. Skipping...", E_USER_WARNING);
-            return;
+            $this->logger->warning("Plugin ${class} is already registered. Skipping...",
+                ['Loaded Plugins' => array_keys($this->plugins)]);
+            return false;
         }
 
         $this->plugins[$class] = $plugin;
         $this->plugins[$class]->init();
+        return true;
     }
 
     public function registerCommand(string $command, callable $handler): bool
     {
         if (isset($this->commands[$command])) {
-            user_error("Command '${command}' already registered", E_USER_ERROR);
+            $this->logger->warning("Command '${command}' already registered. Skipping...",
+                ['Registered Commands' => array_keys($this->commands)]);
             return false;
         }
 
@@ -201,7 +218,7 @@ class Bot
         ]));
 
         if ($res->getStatusCode() != 200) {
-            user_error("Sending message to channel ${channelId} failed", E_USER_WARNING);
+            $this->logger->warning("Sending message to channel ${channelId} failed");
             return false;
         }
 
@@ -211,9 +228,6 @@ class Bot
     protected function invokeGateway()
     {
         static $gatewayUrl, $connector;
-        if (!$this->loop) {
-            $this->loop = Factory::create();
-        }
         if (!$gatewayUrl) {
             $res = $this->getApiClient()->get('gateway', []);
             if ($res->getStatusCode() != 200) {
@@ -229,7 +243,7 @@ class Bot
 
             if ($limits && $limits['remaining'] < ($limits['total'] * 0.1)) {
                 $resetInMinutes = $limits['reset_after'] / 1000 / 60;
-                user_error('WARNING: Only ' . $limits['remaining'] . ' gateway connections remaining. Reset in ' . $resetInMinutes . ' minutes (' . ($resetInMinutes / 60) . ' hours).', E_USER_WARNING);
+                $this->logger->warning('Only ' . $limits['remaining'] . ' gateway connections remaining. Reset in ' . $resetInMinutes . ' minutes (' . ($resetInMinutes / 60) . ' hours).');
             }
             */
         }
@@ -240,7 +254,7 @@ class Bot
         $connector->__invoke($gatewayUrl . static::gatewayParams, [], $this->header)->then(function (
             WebSocket $conn
         ) {
-            $this->log('Connected to gateway.');
+            $this->logger->info('Connected to gateway.');
             $this->websocket = $conn;
             $this->waitingForHeartbeatACK = false;
 
@@ -248,8 +262,8 @@ class Bot
             $conn->on('error', fn() => $this->onGatewayError());
             $conn->on('close', fn($errorCode, $msg) => $this->onGatewayClose($errorCode, $msg));
         }, function (Exception $e) {
-            user_error("Could not connect to gateway, reason: " . $e->getMessage(), E_USER_ERROR);
-            die();
+            $this->logger->error("Could not connect to gateway, reason: " . $e->getMessage());
+            exit(1);
         });
 
         $this->loop->run();
@@ -289,15 +303,14 @@ class Bot
                 break;
             case 9: // "9 Invalid Session"-Payload
             case 7: // "7 Reconnect"-Payload
-                $this->log('Reconnect payload received...');
+                $this->logger->info('Reconnect payload received...');
                 $this->reconnectGateway(boolval($message['d'] ?? true));
                 break;
             case 0: // "0 Dispatch"-Payload
-                $this->events->publish($message['t'], $message);
+                $this->eventManager->publish($message['t'], $message);
                 break;
             default:
-                user_error("Unknown Opcode ${message['op']} received.", E_USER_NOTICE);
-                // var_dump( $message );
+                $this->logger->notice("Unknown Opcode ${message['op']} received.");
                 // Unknown Opcode
                 break;
         }
@@ -305,14 +318,14 @@ class Bot
 
     protected function onGatewayError()
     {
-        user_error("Gateway sent an unexpected error, attempting to reconnect...", E_USER_WARNING);
+        $this->logger->warning("Gateway sent an unexpected error, attempting to reconnect...");
         $this->reconnectGateway();
     }
 
     protected function onGatewayClose(int $errorCode, string $errorMessage)
     {
-        user_error("Gateway was unexpectedly closed, reason: ${errorCode} - ${errorMessage}", E_USER_WARNING);
-        $this->log("Attempting to reconnect after unexpected disconnect...");
+        $this->logger->warning("Gateway was unexpectedly closed, reason: ${errorCode} - ${errorMessage}");
+        $this->logger->info("Attempting to reconnect after unexpected disconnect...");
         $this->reconnectGateway();
     }
 
@@ -320,7 +333,7 @@ class Bot
     {
         if ($this->reconnect) {
             $this->reconnect = false;
-            $this->log("Resuming...");
+            $this->logger->info("Resuming...");
             $message = [
                 'op' => 6,
                 'd' => [
@@ -332,12 +345,12 @@ class Bot
                 't' => 'GATEWAY_RESUME',
             ];
         } else {
-            $this->log("Identifying...");
+            $this->logger->info("Identifying...");
             $message = [
                 'op' => 2,
                 'd' => [
                     'token' => $this->options['token'],
-                    'intents' => $this->events->calculateIntent(),
+                    'intents' => $this->eventManager->calculateIntent(),
                     'properties' => [
                         '$os' => PHP_OS,
                         '$browser' => $this->header['User-Agent'],
@@ -361,7 +374,7 @@ class Bot
     protected function addHeartbeatTimer(float $interval)
     {
         if ($this->heartbeatTimer) {
-            user_error('New HeartbeatTimer while we still have an old one. Should not happen...', E_USER_NOTICE);
+            $this->logger->notice('New HeartbeatTimer while we still have an old one. Should not happen...');
             $this->removeHeartbeatTimer();
         }
 
@@ -383,7 +396,7 @@ class Bot
     protected function sendHeartbeat()
     {
         if ($this->waitingForHeartbeatACK) {
-            user_error("No ACK for Heartbeat received. Attempting to reconnect...", E_USER_NOTICE);
+            $this->logger->notice("No ACK for Heartbeat received. Attempting to reconnect...");
             $this->reconnectGateway();
         } else {
             $answer = [
@@ -402,19 +415,5 @@ class Bot
                 'base_uri' => 'https://discordapp.com/api/',
                 'headers' => $this->header,
             ]));
-    }
-
-    protected function log(string $message, int $errorLevel = LOG_INFO)
-    {
-        if ($errorLevel > $this->options['loglevel']) {
-            return;
-        }
-
-        $date = date("Y-m-d H:i:s");
-        echo "[${date}]\t${message}\n";
-
-        if ($errorLevel <= LOG_ERR) {
-            exit($errorLevel + 1);
-        }
     }
 }

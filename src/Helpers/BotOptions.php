@@ -2,18 +2,22 @@
 
 namespace SunflowerFuchs\DiscordBot\Helpers;
 
-use Symfony\Component\OptionsResolver\Options;
+use Psr\Log\LogLevel;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class BotOptions extends OptionsResolver
 {
-    const DEFAULT_PREFIX = '!';
-    const DEFAULT_LOGLEVEL = 'warning';
-    const LOGLEVELS = [
-        'debug' => LOG_DEBUG,
-        'info' => LOG_INFO,
-        'warning' => LOG_WARNING,
-        'error' => LOG_ERR,
+    protected const DEFAULT_PREFIX = '!';
+    protected const DEFAULT_LOGLEVEL = LogLevel::WARNING;
+    protected const ALLOWED_LOGLEVELS = [
+        LogLevel::EMERGENCY,
+        LogLevel::ALERT,
+        LogLevel::CRITICAL,
+        LogLevel::ERROR,
+        LogLevel::WARNING,
+        LogLevel::NOTICE,
+        LogLevel::INFO,
+        LogLevel::DEBUG,
     ];
 
     public function __construct()
@@ -33,9 +37,6 @@ class BotOptions extends OptionsResolver
         $this->define('loglevel')
             ->default(static::DEFAULT_LOGLEVEL)
             ->allowedTypes('string')
-            ->allowedValues(...array_keys(static::LOGLEVELS))
-            ->normalize(function (Options $options, string $value) {
-                return static::LOGLEVELS[$value];
-            });
+            ->allowedValues(...static::ALLOWED_LOGLEVELS);
     }
 }

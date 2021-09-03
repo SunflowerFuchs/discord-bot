@@ -4,7 +4,6 @@ namespace SunflowerFuchs\DiscordBot;
 
 use Exception;
 use GuzzleHttp\Client;
-use InvalidArgumentException;
 use Ratchet\Client\Connector;
 use Ratchet\Client\WebSocket;
 use Ratchet\RFC6455\Messaging\Message as RatchetMessage;
@@ -12,10 +11,17 @@ use React\EventLoop\Factory;
 use React\EventLoop\StreamSelectLoop;
 use React\EventLoop\TimerInterface;
 use SunflowerFuchs\DiscordBot\ApiObjects\Message;
+use SunflowerFuchs\DiscordBot\Helpers\BotOptions;
 use SunflowerFuchs\DiscordBot\Helpers\EventManager;
 use SunflowerFuchs\DiscordBot\Plugins\BasePlugin;
 use SunflowerFuchs\DiscordBot\Plugins\PingPlugin;
 use SunflowerFuchs\DiscordBot\Plugins\UptimePlugin;
+use Symfony\Component\OptionsResolver\Exception\AccessException;
+use Symfony\Component\OptionsResolver\Exception\InvalidOptionsException;
+use Symfony\Component\OptionsResolver\Exception\MissingOptionsException;
+use Symfony\Component\OptionsResolver\Exception\NoSuchOptionException;
+use Symfony\Component\OptionsResolver\Exception\OptionDefinitionException;
+use Symfony\Component\OptionsResolver\Exception\UndefinedOptionsException;
 
 class Bot
 {
@@ -64,6 +70,9 @@ class Bot
                     $this->registerPlugin(new $class());
                 }
             }
+
+            $this->header['Authorization'] = 'Bot ' . $this->options['token'];
+
             $this->events = $this->initEventManager();
 
             $initialized = true;
@@ -93,53 +102,24 @@ class Bot
         return true;
     }
 
+    /**
+     * @param array $options
+     *
+     * @throws UndefinedOptionsException
+     * @throws InvalidOptionsException
+     * @throws MissingOptionsException
+     * @throws OptionDefinitionException
+     * @throws NoSuchOptionException
+     * @throws AccessException
+     */
     public function setOptions(array $options): void
     {
-        $this->options = $this->cleanupOptions($options);
+        // Moved the OptionsResolver into its own class for readability
+        $this->options = (new BotOptions())->resolve($options);
 
-        $token = $this->options['token'];
-        $this->header['Authorization'] = "Bot ${token}";
-    }
-
-    protected function validateOptions(array $options): void
-    {
-        $required = [
-            'token',
-            'prefix'
-        ];
-        $known = [
-            ...$required,
-            'defaultPlugins',
-            'debug'
-        ];
-        $given = array_keys($options);
-
-        $missing = array_diff($required, $given);
-        if (!empty($missing)) {
-            $missing = implode(', ', $missing);
-            throw new InvalidArgumentException("Missing required argument(s): ${missing}");
-        }
-
-        $unknown = array_diff($given, $known);
-        if (!empty($unknown)) {
-            $unknownList = implode(', ', $unknown);
-            user_error("Unknown argument(s): ${unknownList}", E_USER_WARNING);
-            array_filter($options, fn($key) => !array_key_exists($key, $unknown), ARRAY_FILTER_USE_KEY);
-        }
-
-        // TODO: Add type validation
-        //       I should probably do a whole rewrite of this function for that
-    }
-
-    protected function cleanupOptions(array $options): array
-    {
-        // TODO: In case i rewrite validateOptions, this either becomes obsolete, or should also be rewritten
-        $this->validateOptions($options);
-        $options['prefix'] = trim($options['prefix']);
-        $options['token'] = trim($options['token']);
-        $options['defaultPlugins'] = boolval(!empty($options['defaultPlugins']) ? $options['defaultPlugins'] : true);
-        $options['debug'] = boolval($options['debug'] ?? false);
-        return $options;
+        $redacted = array_replace($this->options, ['token' => 'XXX']);
+        $flattened = var_export($redacted, true);
+        $this->log("Bot initialized with the following options: ${flattened}", LOG_DEBUG);
     }
 
     public function getPrefix(): string
@@ -152,7 +132,7 @@ class Bot
         $manager = EventManager::getInstance();
 
         $manager->subscribe(EventManager::READY, function (array $message) {
-            $this->debugMsg("Gateway session initialized.");
+            $this->log("Gateway session initialized.");
             $this->sessionId = $message['d']['session_id'];
             $this->userId = $message['d']['user']['id'];
         });
@@ -260,7 +240,7 @@ class Bot
         $connector->__invoke($gatewayUrl . static::gatewayParams, [], $this->header)->then(function (
             WebSocket $conn
         ) {
-            $this->debugMsg('Connected to gateway.');
+            $this->log('Connected to gateway.');
             $this->websocket = $conn;
             $this->waitingForHeartbeatACK = false;
 
@@ -309,7 +289,7 @@ class Bot
                 break;
             case 9: // "9 Invalid Session"-Payload
             case 7: // "7 Reconnect"-Payload
-                $this->debugMsg('Reconnect payload received...');
+                $this->log('Reconnect payload received...');
                 $this->reconnectGateway(boolval($message['d'] ?? true));
                 break;
             case 0: // "0 Dispatch"-Payload
@@ -332,7 +312,7 @@ class Bot
     protected function onGatewayClose(int $errorCode, string $errorMessage)
     {
         user_error("Gateway was unexpectedly closed, reason: ${errorCode} - ${errorMessage}", E_USER_WARNING);
-        $this->debugMsg("Attempting to reconnect after unexpected disconnect...");
+        $this->log("Attempting to reconnect after unexpected disconnect...");
         $this->reconnectGateway();
     }
 
@@ -340,7 +320,7 @@ class Bot
     {
         if ($this->reconnect) {
             $this->reconnect = false;
-            $this->debugMsg("Resuming...");
+            $this->log("Resuming...");
             $message = [
                 'op' => 6,
                 'd' => [
@@ -352,7 +332,7 @@ class Bot
                 't' => 'GATEWAY_RESUME',
             ];
         } else {
-            $this->debugMsg("Identifying...");
+            $this->log("Identifying...");
             $message = [
                 'op' => 2,
                 'd' => [
@@ -424,12 +404,17 @@ class Bot
             ]));
     }
 
-    public function debugMsg(string $message)
+    protected function log(string $message, int $errorLevel = LOG_INFO)
     {
-        if (!$this->options['debug']) {
+        if ($errorLevel > $this->options['loglevel']) {
             return;
         }
 
-        echo $message . PHP_EOL;
+        $date = date("Y-m-d H:i:s");
+        echo "[${date}]\t${message}\n";
+
+        if ($errorLevel <= LOG_ERR) {
+            exit($errorLevel + 1);
+        }
     }
 }

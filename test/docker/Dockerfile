@@ -1,5 +1,7 @@
 FROM php:7.4-cli
 
+RUN apt-get update && apt-get install -y git unzip && rm -rf /var/lib/apt/lists/*
+
 ARG TZ="Europe/Berlin"
 ENV TZ ${TZ}
 

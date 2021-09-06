@@ -202,12 +202,12 @@ class Message
         $this->interaction = !empty($data['interaction']) ? new Interaction($data['interaction']) : null;
         $this->thread = !empty($data['thread']) ? new Channel($data['thread']) : null;
 
-        $this->mentions = array_map(fn($data) => new User($data), $data['mentions']);
+        $this->mentions = array_map(fn($user) => new User($user), $data['mentions']);
         $this->mention_roles = array_map(fn($snowflake) => new Snowflake($snowflake), $data['mention_roles']);
-        $this->mention_channels = array_map(fn($data) => new Mention($data), $data['mention_channels'] ?? []);
-        $this->attachments = array_map(fn($data) => new Attachment($data), $data['attachments']);
-        $this->reactions = array_map(fn(array $reaction) => new Reaction($reaction), $data['reactions'] ?? []);
-        $this->sticker_items = array_map(fn(array $sticker_items) => new StickerItem($data),
+        $this->mention_channels = array_map(fn($mention) => new Mention($mention), $data['mention_channels'] ?? []);
+        $this->attachments = array_map(fn($attachment) => new Attachment($attachment), $data['attachments']);
+        $this->reactions = array_map(fn($reaction) => new Reaction($reaction), $data['reactions'] ?? []);
+        $this->sticker_items = array_map(fn($sticker_item) => new StickerItem($sticker_item),
             $data['sticker_items'] ?? []);
         $this->embeds = array_map(fn($embed) => new Embed($embed), $data['embeds'] ?? []);
         $this->components = array_map(fn($component) => ComponentFactory::factory($component),

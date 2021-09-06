@@ -12,19 +12,66 @@ class User
     const PREMIUM_CLASSIC = 1;
     const PREMIUM_NITRO = 2;
 
+    /**
+     * the user's id
+     */
     protected Snowflake $id;
+    /**
+     * the user's username, not unique across the platform
+     */
     protected string $username;
+    /**
+     * the user's 4-digit discord-tag
+     */
     protected string $discriminator;
+    /**
+     * the user's avatar hash
+     */
     protected ?string $avatar;
-    protected bool $bot;
-    protected bool $system;
-    protected bool $mfa;
-    protected string $locale;
-    protected bool $verified;
+    /**
+     * whether the user belongs to an OAuth2 application
+     */
+    protected ?bool $bot;
+    /**
+     * whether the user is an Official Discord System user (part of the urgent message system)
+     */
+    protected ?bool $system;
+    /**
+     * whether the user has two factor enabled on their account
+     */
+    protected ?bool $mfa;
+    /**
+     * the user's banner, or null if unset
+     */
+    protected ?string $banner;
+    /**
+     * the user's banner color encoded as an integer representation of hexadecimal color code
+     */
+    protected ?int $accent_color;
+    /**
+     * the user's chosen language option
+     */
+    protected ?string $locale;
+    /**
+     * whether the email on this account has been verified
+     */
+    protected ?bool $verified;
+    /**
+     * the user's email
+     */
     protected ?string $email;
-    protected int $flags;
-    protected int $premium_type;
-    protected int $public_flags;
+    /**
+     * the flags on a user's account
+     */
+    protected ?int $flags;
+    /**
+     * the type of Nitro subscription on a user's account
+     */
+    protected ?int $premium_type;
+    /**
+     * the public flags on a user's account
+     */
+    protected ?int $public_flags;
 
     public function __construct(array $data)
     {
@@ -36,6 +83,8 @@ class User
         $this->bot = $data['bot'] ?? false;
         $this->system = $data['system'] ?? false;
         $this->mfa = $data['mfa_enabled'] ?? false;
+        $this->banner = $data['banner'] ?? false;
+        $this->accent_color = $data['accent_color'] ?? false;
         $this->locale = $data['locale'] ?? 'en_US';
         $this->verified = $data['verified'] ?? true;
         $this->email = $data['email'] ?? null;
@@ -171,9 +220,25 @@ class User
      *
      * @return bool
      */
-    protected function hasMultifactorEnabled(): bool
+    protected function hasMultiFactorEnabled(): bool
     {
         return $this->mfa;
+    }
+
+    /**
+     * the user's banner, or null if unset
+     */
+    public function getBanner(): ?string
+    {
+        return $this->banner;
+    }
+
+    /**
+     * the user's banner color encoded as an integer representation of hexadecimal color code
+     */
+    public function getAccentColor(): ?int
+    {
+        return $this->accent_color;
     }
 
     /**

@@ -41,6 +41,10 @@ class GuildMember
      * whether the user has not yet passed the guild's Membership Screening requirements
      */
     protected bool $pending;
+    /**
+     * total permissions of the member in the channel, including overwrites, returned when in the interaction object
+     */
+    protected ?string $permissions;
 
     public function __construct(array $data)
     {
@@ -52,6 +56,7 @@ class GuildMember
         $this->mute = $data['mute'] ?? false;
         $this->pending = $data['pending'] ?? false;
         $this->roles = array_map(fn(string $snowflake) => new Snowflake($snowflake), $data['roles'] ?? []);
+        $this->permissions = $data['permissions'] ?? null;
     }
 
     public static function loadById(string $guildId, string $userId): ?self
@@ -143,4 +148,14 @@ class GuildMember
     {
         return $this->pending;
     }
+
+    /**
+     * total permissions of the member in the channel, including overwrites, returned when in the interaction object
+     */
+    public function getPermissions(): string
+    {
+        return $this->permissions;
+    }
+
+
 }

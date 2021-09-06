@@ -13,6 +13,10 @@ class Attachment
      */
     protected string $filename;
     /**
+     * the attachment's media type
+     */
+    protected string $content_type;
+    /**
      * size of file in bytes
      */
     protected int $size;
@@ -37,6 +41,7 @@ class Attachment
     {
         $this->id = new Snowflake($data['id']);
         $this->filename = $data['filename'];
+        $this->filename = $data['content_type'] ?? '';
         $this->size = intval($data['size']);
         $this->url = $data['url'];
         $this->proxy_url = $data['proxy_url'];
@@ -62,6 +67,14 @@ class Attachment
     public function getFilename(): string
     {
         return $this->filename;
+    }
+
+    /**
+     * the attachment's media type
+     */
+    public function getContentType(): string
+    {
+        return $this->content_type;
     }
 
     /**

@@ -4,24 +4,21 @@
 namespace SunflowerFuchs\DiscordBot\ApiObjects;
 
 
-class Sticker
+class Sticker extends StickerItem
 {
-    const TYPE_PNG = 1;
-    const TYPE_APNG = 2;
-    const TYPE_LOTTIE = 3;
-
     /**
-     * id of the sticker
+     * an official sticker in a pack, part of Nitro or in a removed purchasable pack
      */
-    protected Snowflake $id;
+    public const TYPE_STANDARD = 0;
+    /**
+     * a sticker uploaded to a Boosted guild for the guild's members
+     */
+    public const TYPE_GUILD = 1;
+
     /**
      * id of the pack the sticker is from
      */
     protected Snowflake $pack_id;
-    /**
-     * name of the sticker
-     */
-    protected string $name;
     /**
      * description of the sticker
      */
@@ -31,40 +28,44 @@ class Sticker
      */
     protected array $tags;
     /**
-     * sticker asset hash
+     * type of sticker
      */
-    protected string $asset;
+    protected int $type;
     /**
-     * sticker preview asset hash
+     * whether this guild sticker can be used, may be false due to loss of Server Boosts
      */
-    protected ?string $preview_asset;
+    protected ?bool $available;
     /**
-     * type of sticker format
+     * id of the guild that owns this sticker
      */
-    protected int $format_type;
+    protected ?Snowflake $guild_id;
+    /**
+     * the user that uploaded the guild sticker
+     */
+    protected ?User $user;
+    /**
+     * the standard sticker's sort order within its pack
+     */
+    protected ?int $sort_value;
 
     public function __construct(array $data)
     {
-        $this->id = new Snowflake($data['id']);
+        parent::__construct($data);
+
         $this->pack_id = new Snowflake($data['pack_id']);
-        $this->name = $data['name'];
         $this->description = $data['description'];
-        $this->tags = !empty($data['tags']) ? explode(',', $data['tags']) : [];
-        $this->asset = $data['asset'];
-        $this->preview_asset = $data['preview_asset'] ?? null;
-        $this->format_type = $data['format_type'];
+        $this->tags = explode(',', $data['tags']);
+        $this->type = $data['type'];
+
+        // defaults to true on standard stickers, and to false on guild stickers
+        $this->available = $data['available'] ?? ($this->type === self::TYPE_STANDARD);
+        $this->guild_id = !empty($data['guild_id']) ? new Snowflake($data['guild_id']) : null;
+        $this->user = !empty($data['user']) ? new User($data['user']) : null;
+        $this->sort_value = $data['sort_value'] ?? null;
     }
 
     /**
-     * @return Snowflake
-     */
-    public function getId(): Snowflake
-    {
-        return $this->id;
-    }
-
-    /**
-     * @return Snowflake
+     * id of the pack the sticker is from
      */
     public function getPackId(): Snowflake
     {
@@ -72,15 +73,7 @@ class Sticker
     }
 
     /**
-     * @return string
-     */
-    public function getName(): string
-    {
-        return $this->name;
-    }
-
-    /**
-     * @return string
+     * description of the sticker
      */
     public function getDescription(): string
     {
@@ -88,7 +81,7 @@ class Sticker
     }
 
     /**
-     * @return string[]
+     * a list of tags for the sticker
      */
     public function getTags(): array
     {
@@ -96,29 +89,42 @@ class Sticker
     }
 
     /**
-     * @return string
+     * type of sticker
      */
-    public function getAssetHash(): string
+    public function getType()
     {
-        return $this->asset;
+        return $this->type;
     }
 
     /**
-     * @return ?string
+     * whether this guild sticker can be used, may be false due to loss of Server Boosts
      */
-    public function getPreviewAsset(): ?string
+    public function getAvailable()
     {
-        return $this->preview_asset;
+        return $this->available;
     }
 
     /**
-     * @return int
-     * @see Sticker::TYPE_PNG
-     * @see Sticker::TYPE_APNG
-     * @see Sticker::TYPE_LOTTIE
+     * id of the guild that owns this sticker
      */
-    public function getFormatType(): int
+    public function getGuildId(): ?Snowflake
     {
-        return $this->format_type;
+        return $this->guild_id;
+    }
+
+    /**
+     * the user that uploaded the guild sticker
+     */
+    public function getUser(): ?User
+    {
+        return $this->user;
+    }
+
+    /**
+     * the standard sticker's sort order within its pack
+     */
+    public function getSortValue()
+    {
+        return $this->sort_value;
     }
 }

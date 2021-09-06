@@ -11,6 +11,10 @@ class EmbedVideo
      */
     protected ?string $url;
     /**
+     * a proxied url of the video
+     */
+    protected ?string $proxy_url;
+    /**
      * height of video
      */
     protected ?int $height;
@@ -22,6 +26,7 @@ class EmbedVideo
     public function __construct(array $data)
     {
         $this->url = $data['url'] ?? null;
+        $this->proxy_url = $data['proxy_url'] ?? null;
         $this->height = $data['height'] ?? null;
         $this->width = $data['width'] ?? null;
     }
@@ -32,6 +37,14 @@ class EmbedVideo
     public function getUrl(): ?string
     {
         return $this->url;
+    }
+
+    /**
+     * @return ?string
+     */
+    public function getProxyUrl(): ?string
+    {
+        return $this->proxy_url;
     }
 
     /**

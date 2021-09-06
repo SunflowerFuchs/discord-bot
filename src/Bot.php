@@ -28,7 +28,7 @@ use Symfony\Component\OptionsResolver\Exception\UndefinedOptionsException;
 
 class Bot implements LoggerAwareInterface
 {
-    protected const gatewayParams = '?v=8&encoding=json';
+    protected const gatewayParams = '?v=9&encoding=json';
     protected const defaultPlugins = [
         PingPlugin::class,
         UptimePlugin::class,

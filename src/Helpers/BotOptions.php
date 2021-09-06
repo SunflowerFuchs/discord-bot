@@ -8,7 +8,7 @@ use Symfony\Component\OptionsResolver\OptionsResolver;
 class BotOptions extends OptionsResolver
 {
     protected const DEFAULT_PREFIX = '!';
-    protected const DEFAULT_LOGLEVEL = LogLevel::WARNING;
+    protected const DEFAULT_LOGLEVEL = LogLevel::INFO;
     protected const ALLOWED_LOGLEVELS = [
         LogLevel::EMERGENCY,
         LogLevel::ALERT,

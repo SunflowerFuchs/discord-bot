@@ -4,7 +4,7 @@
 namespace SunflowerFuchs\DiscordBot\ApiObjects;
 
 
-use SunflowerFuchs\DiscordBot\Bot;
+use GuzzleHttp\Client;
 
 class GuildMember
 {
@@ -54,9 +54,9 @@ class GuildMember
         $this->roles = array_map(fn(string $snowflake) => new Snowflake($snowflake), $data['roles'] ?? []);
     }
 
-    public static function loadById(string $guildId, string $userId): ?self
+    public static function loadById(Client $apiClient, string $guildId, string $userId): ?self
     {
-        $ref = Bot::getInstance()->getApiClient()->get("/guilds/${guildId}/members/${userId}");
+        $ref = $apiClient->get("/guilds/${guildId}/members/${userId}");
         if ($ref->getStatusCode() !== 200) {
             return null;
         }

@@ -61,16 +61,6 @@ class EventManager
      */
     protected array $subscribers = [];
 
-    private function __construct()
-    {
-    }
-
-    public static function getInstance(): self
-    {
-        static $instance;
-        return $instance ?: ($instance = new static());
-    }
-
     /**
      * Subscribe to an event
      *

@@ -4,6 +4,7 @@
 namespace SunflowerFuchs\DiscordBot\ApiObjects;
 
 
+use GuzzleHttp\Client;
 use SunflowerFuchs\DiscordBot\Bot;
 
 class Channel
@@ -136,13 +137,13 @@ class Channel
         $this->last_pin_timestamp = !empty($data['last_pin_timestamp']) ? strtotime($data['last_pin_timestamp']) : null;
         $this->permission_overwrites = array_map(fn(array $overwrite) => new Overwrite($overwrite),
             $data['permission_overwrites'] ?? []);
-        $this->permission_overwrites = array_map(fn(array $recipient) => new User($recipient),
+        $this->recipients = array_map(fn(array $recipient) => new User($recipient),
             $data['recipients'] ?? []);
     }
 
-    public static function loadById(string $channelId): ?self
+    public static function loadById(Client $apiClient, string $channelId): ?self
     {
-        $res = Bot::getInstance()->getApiClient()->get("channels/${channelId}");
+        $res = $apiClient->get("channels/${channelId}");
         if ($res->getStatusCode() !== 200) {
             return null;
         }

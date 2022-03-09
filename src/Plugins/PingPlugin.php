@@ -5,26 +5,41 @@ namespace SunflowerFuchs\DiscordBot\Plugins;
 
 
 use SunflowerFuchs\DiscordBot\ApiObjects\Message;
-use SunflowerFuchs\DiscordBot\Bot;
+use SunflowerFuchs\DiscordBot\ApiObjects\Snowflake;
+use SunflowerFuchs\DiscordBot\ApiObjects\User;
 
 class PingPlugin extends BasePlugin
 {
     public function init()
     {
-        Bot::getInstance()->registerCommand('ping', fn($msg) => $this->ping($msg));
+        $this->getBot()->registerCommand('ping', fn($msg) => $this->ping($msg));
     }
 
-    protected function ping(Message $msg)
+    protected function ping(Message $msg): bool
     {
         $channelId = $msg->getChannelId();
-        if ($msg->isUserMessage() && $msg->getContent() == 'long') {
-            $author = $msg->getAuthor();
-            $userId = $author->getId();
-            $response = "Hey <@${userId}>. I'm up, running, and having fun!";
-            $response .= PHP_EOL . "We're currently vibing in <#${channelId}>.";
-            $this->sendMessage($response, $channelId);
-        } else {
-            $this->sendMessage('Pong', $channelId);
+        if (!$msg->isUserMessage()) {
+            return true;
         }
+
+        $params = $msg->getCommandParams($this->getBot()->getPrefix());
+        if ($params[0] === 'long') {
+            return $this->sendLongPing($channelId, $msg->getAuthor());
+        } else {
+            return $this->sendPing($channelId);
+        }
+    }
+
+    protected function sendPing(Snowflake $channelId): bool
+    {
+        return $this->sendMessage('Pong', $channelId);
+    }
+
+    protected function sendLongPing(Snowflake $channelId, User $author): bool
+    {
+        $userId = $author->getId();
+        $response = "Hey <@${userId}>. I'm up, running, and having fun!";
+        $response .= PHP_EOL . "We're currently vibing in <#${channelId}>.";
+        return $this->sendMessage($response, $channelId);
     }
 }

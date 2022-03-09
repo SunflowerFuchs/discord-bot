@@ -3,8 +3,6 @@
 
 namespace SunflowerFuchs\DiscordBot\ApiObjects;
 
-use SunflowerFuchs\DiscordBot\Bot;
-
 /**
  * @TODO: add docblock comments
  */
@@ -238,27 +236,25 @@ class Message
     }
 
     /**
-     * @param bool $fullMessage Whether the message should include the command prefix, if it is a command
+     * Returns the full message contents
+     *
      * @return string
      */
-    public function getContent(bool $fullMessage = false): string
+    public function getContent(): string
     {
-        $content = $this->content;
-        if (!$fullMessage && $this->isCommand()) {
-            $content = explode(' ', $content, 2)[1] ?? '';
-        }
-
-        return $content;
+        return $this->content;
     }
 
     /**
      * Whether the message seems to be a command (starts with the bot prefix)
+     *
+     * @param string $prefix
+     *
      * @return bool
      */
-    public function isCommand(): bool
+    public function isCommand(string $prefix): bool
     {
         $content = $this->getContent(true);
-        $prefix = Bot::getInstance()->getPrefix();
         $prefixLength = strlen($prefix);
         return $this->isUserMessage()
             && substr($content, 0, $prefixLength) === $prefix
@@ -268,14 +264,33 @@ class Message
     /**
      * If this is a command, returns the command name after the prefix
      *
+     * @param string $prefix
+     *
      * @return ?string
      */
-    public function getCommand(): ?string
+    public function getCommand(string $prefix): string
     {
-        if (!$this->isCommand()) {
-            return null;
+        if (!$this->isCommand($prefix)) {
+            return '';
         }
-        return substr(explode(' ', $this->getContent(true))[0], strlen(Bot::getInstance()->getPrefix()));
+        return substr(explode(' ', $this->getContent(true))[0], strlen($prefix));
+    }
+
+    /**
+     * If this is a command, returns the parameters this command received
+     *
+     * @param string $prefix
+     *
+     * @return string[]
+     */
+    public function getCommandParams(string $prefix): array
+    {
+        if (!$this->isCommand($prefix)) {
+            return [];
+        }
+        $params = explode(' ', $this->getContent(true));
+        array_shift($params);
+        return $params;
     }
 
     /**

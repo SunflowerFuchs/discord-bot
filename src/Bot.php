@@ -55,17 +55,23 @@ class Bot implements LoggerAwareInterface
     protected ?WebSocket $websocket = null;
     protected ?TimerInterface $heartbeatTimer = null;
 
-    private function __construct()
+    /**
+     * @param array $options
+     *
+     * @throws UndefinedOptionsException
+     * @throws InvalidOptionsException
+     * @throws MissingOptionsException
+     * @throws OptionDefinitionException
+     * @throws NoSuchOptionException
+     * @throws AccessException
+     */
+    public function __construct(array $options)
     {
         $this->logger = new EchoLogger();
-        $this->eventManager = EventManager::getInstance();
+        $this->eventManager = new EventManager();
         $this->loop = Factory::create();
-    }
 
-    public static function getInstance(): self
-    {
-        static $instance;
-        return $instance ?? ($instance = new self());
+        $this->setOptions($options);
     }
 
     protected function initialize()
@@ -81,6 +87,7 @@ class Bot implements LoggerAwareInterface
             $this->header['Authorization'] = 'Bot ' . $this->options['token'];
 
             $this->initEventManager();
+            $this->registerSystemEventHandler();
 
             $initialized = true;
         }
@@ -104,6 +111,7 @@ class Bot implements LoggerAwareInterface
 
     public function stop(): bool
     {
+        $this->logger->info('Shutting down...');
         $this->keepRunning = false;
         $this->closeGateway();
         return true;
@@ -158,10 +166,40 @@ class Bot implements LoggerAwareInterface
 
         $this->eventManager->subscribe(EventManager::MESSAGE_CREATE, function (array $message) {
             $msg = new Message($message['d']);
-            if ($msg->isCommand()) {
-                $this->runCommand($msg->getCommand(), $msg);
+            if ($msg->isCommand($this->getPrefix())) {
+                $this->runCommand($msg->getCommand($this->getPrefix()), $msg);
             }
         });
+    }
+
+    /**
+     * Registers functionality for system events, things like SIGINT, SIGHUP, etc.
+     *
+     * @return void
+     * @noinspection PhpUndefinedConstantInspection
+     */
+    protected function registerSystemEventHandler(): void
+    {
+        // regular shutdowns
+        register_shutdown_function(fn(Bot $bot) => $bot->stop(), $this);
+
+        // linux signal handlers, if possible
+        if (function_exists('pcntl_signal')) {
+            $handler = function ($signal) {
+                switch ($signal) {
+                    case SIGTERM:
+                        $this->stop();
+                        exit;
+                    case SIGHUP:
+                        $this->reconnectGateway(true);
+                        break;
+                }
+            };
+
+            // setup signal handlers
+            pcntl_signal(SIGTERM, $handler);
+            pcntl_signal(SIGHUP, $handler);
+        }
     }
 
     public function subscribeToEvent(string $event, callable $handler): void
@@ -179,6 +217,7 @@ class Bot implements LoggerAwareInterface
         }
 
         $this->plugins[$class] = $plugin;
+        $this->plugins[$class]->setBot($this);
         $this->plugins[$class]->init();
         return true;
     }
@@ -195,14 +234,23 @@ class Bot implements LoggerAwareInterface
         return true;
     }
 
-    protected function runCommand(string $command, Message $messageObject)
+    protected function runCommand(string $command, Message $messageObject): bool
     {
         // Handle unknown commands
         if (!isset($this->commands[$command])) {
-            return;
+            $this->logger->debug("Unknown command ${command} received.");
+            return false;
         }
 
-        call_user_func($this->commands[$command], $messageObject);
+        $return = call_user_func($this->commands[$command], $messageObject);
+        if (!is_bool($return) && !is_null($return)) {
+            $this->logger->warning("Command ${command} returned invalid (non-bool) return value");
+            $return = false;
+        } elseif ($return === false) {
+            $this->logger->info("Command ${command} did not return successfully");
+        }
+
+        return $return;
     }
 
     public function sendMessage(string $message, string $channelId): bool

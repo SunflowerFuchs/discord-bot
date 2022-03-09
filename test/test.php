@@ -6,6 +6,5 @@ use SunflowerFuchs\DiscordBot\Bot;
 
 $options = parse_ini_file(__DIR__ . DIRECTORY_SEPARATOR . 'test.ini', false, INI_SCANNER_TYPED);
 
-$bot = Bot::getInstance();
-$bot->setOptions($options);
+$bot = new Bot($options);
 $bot->run();

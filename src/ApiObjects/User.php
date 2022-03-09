@@ -4,6 +4,7 @@
 namespace SunflowerFuchs\DiscordBot\ApiObjects;
 
 
+use GuzzleHttp\Client;
 use SunflowerFuchs\DiscordBot\Bot;
 
 class User
@@ -44,9 +45,9 @@ class User
         $this->public_flags = $data['public_flags'] ?? 0;
     }
 
-    public static function loadById(string $userId): ?self
+    public static function loadById(Client $apiClient, string $userId): ?self
     {
-        $res = Bot::getInstance()->getApiClient()->get("users/${userId}");
+        $res = $apiClient->get("users/${userId}");
         if ($res->getStatusCode() === 200) {
             return new static(json_decode($res->getBody()->getContents(), true));
         }

@@ -3,6 +3,8 @@
 
 namespace SunflowerFuchs\DiscordBot\ApiObjects;
 
+use SunflowerFuchs\DiscordBot\Helpers\ComponentFactory;
+
 /**
  * @TODO: add docblock comments
  */
@@ -25,6 +27,8 @@ class Message
     const TYPE_GUILD_DISCOVERY_REQUALIFIED = 15;
     const TYPE_REPLY = 19;
     const TYPE_APPLICATION_COMMAND = 20;
+    const TYPE_THREAD_STARTER_MESSAGE = 21;
+    const TYPE_GUILD_INVITE_REMINDER = 22;
 
     /**
      * this message has been published to subscribed channels (via Channel Following)
@@ -151,14 +155,27 @@ class Message
      */
     protected int $flags;
     /**
-     * the stickers sent with the message (bots currently can only receive messages with stickers, not send)
-     * @var Sticker[] $stickers
-     */
-    protected ?array $stickers;
-    /**
      * the message associated with the message_reference
      */
     protected ?Message $referenced_message;
+    /**
+     * sent if the message is a response to an Interaction
+     */
+    protected ?Interaction $interaction;
+    /**
+     * the thread that was started from this message, includes thread member object
+     */
+    protected ?Channel $thread;
+    /**
+     * sent if the message contains components like buttons, action rows, or other interactive components
+     * @var Component[]
+     */
+    protected array $components;
+    /**
+     * the stickers sent with the message (bots currently can only receive messages with stickers, not send)
+     * @var StickerItem[] $sticker_items
+     */
+    protected ?array $sticker_items;
 
     public function __construct(array $data)
     {
@@ -181,14 +198,19 @@ class Message
         $this->message_reference = !empty($data['message_reference']) ? new MessageReference($data['message_reference']) : null;
         $this->flags = $data['flags'] ?? 0;
         $this->referenced_message = !empty($data['referenced_message']) ? new static($data['referenced_message']) : null;
+        $this->interaction = !empty($data['interaction']) ? new Interaction($data['interaction']) : null;
+        $this->thread = !empty($data['thread']) ? new Channel($data['thread']) : null;
 
-        $this->mentions = array_map(fn($data) => new User($data), $data['mentions']);
+        $this->mentions = array_map(fn($user) => new User($user), $data['mentions']);
         $this->mention_roles = array_map(fn($snowflake) => new Snowflake($snowflake), $data['mention_roles']);
-        $this->mention_channels = array_map(fn($data) => new Mention($data), $data['mention_channels'] ?? []);
-        $this->attachments = array_map(fn($data) => new Attachment($data), $data['attachments']);
-        $this->reactions = array_map(fn(array $reaction) => new Reaction($reaction), $data['reactions'] ?? []);
-        $this->stickers = array_map(fn(array $sticker) => new Sticker($data), $data['stickers'] ?? []);
+        $this->mention_channels = array_map(fn($mention) => new Mention($mention), $data['mention_channels'] ?? []);
+        $this->attachments = array_map(fn($attachment) => new Attachment($attachment), $data['attachments']);
+        $this->reactions = array_map(fn($reaction) => new Reaction($reaction), $data['reactions'] ?? []);
+        $this->sticker_items = array_map(fn($sticker_item) => new StickerItem($sticker_item),
+            $data['sticker_items'] ?? []);
         $this->embeds = array_map(fn($embed) => new Embed($embed), $data['embeds'] ?? []);
+        $this->components = array_map(fn($component) => ComponentFactory::factory($component),
+            $data['components'] ?? []);
     }
 
     /**
@@ -406,7 +428,9 @@ class Message
      */
     public function isTextMessage(): bool
     {
-        return $this->getType() === static::TYPE_DEFAULT || $this->getType() === static::TYPE_REPLY;
+        return $this->getType() === static::TYPE_DEFAULT
+            || $this->getType() === static::TYPE_REPLY
+            || $this->getType() === static::TYPE_THREAD_STARTER_MESSAGE;
     }
 
     /**
@@ -431,6 +455,14 @@ class Message
     public function getMessageReference(): ?MessageReference
     {
         return $this->message_reference;
+    }
+
+    /**
+     * the thread that was started from this message, includes thread member object
+     */
+    public function getThread(): ?Channel
+    {
+        return $this->thread;
     }
 
     /**
@@ -472,8 +504,8 @@ class Message
      * @TODO: implement Stickers
      * @return Sticker[]
      */
-    public function getStickers(): ?array
+    public function getStickerItems(): ?array
     {
-        return $this->stickers;
+        return $this->sticker_items;
     }
 }

@@ -4,7 +4,7 @@
 namespace SunflowerFuchs\DiscordBot\ApiObjects;
 
 
-class MessageReference
+class   MessageReference
 {
     /**
      * id of the originating message
@@ -18,12 +18,18 @@ class MessageReference
      * id of the originating message's guild
      */
     protected ?Snowflake $guild_id;
+    /**
+     * when sending, whether to error if the referenced message doesn't exist
+     * instead of sending as a normal (non-reply) message, default true
+     */
+    protected ?bool $fail_if_not_exists;
 
     public function __construct(array $data)
     {
         $this->message_id = !empty($data['message_id']) ? new Snowflake($data['message_id']) : null;
         $this->channel_id = !empty($data['channel_id']) ? new Snowflake($data['channel_id']) : null;
         $this->guild_id = !empty($data['guild_id']) ? new Snowflake($data['guild_id']) : null;
+        $this->fail_if_not_exists = $data['fail_if_not_exists'] ?? true;
     }
 
     /**
@@ -51,5 +57,14 @@ class MessageReference
     public function getGuildId(): ?Snowflake
     {
         return $this->guild_id;
+    }
+
+    /**
+     * when sending, whether to error if the referenced message doesn't exist
+     * instead of sending as a normal (non-reply) message, default true
+     */
+    public function getFailIfNotExists(): bool
+    {
+        return $this->fail_if_not_exists;
     }
 }

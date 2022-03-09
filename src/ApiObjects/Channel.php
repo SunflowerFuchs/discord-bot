@@ -37,6 +37,24 @@ class Channel
      * a channel in which game developers can sell their game on Discord
      */
     const TYPE_GUILD_STORE = 6;
+    /**
+     * a temporary sub-channel within a GUILD_NEWS channel
+     */
+    const TYPE_GUILD_NEWS_THREAD = 10;
+    /**
+     * a temporary sub-channel within a GUILD_TEXT channel
+     */
+    const TYPE_GUILD_PUBLIC_THREAD = 11;
+    /**
+     * a temporary sub-channel within a GUILD_TEXT channel that is only viewable by those invited
+     * and those with the MANAGE_THREADS permission
+     */
+    const TYPE_GUILD_PRIVATE_THREAD = 12;
+    /**
+     * a voice channel for hosting events with an audience
+     */
+    const TYPE_GUILD_STAGE_VOICE = 13;
+
 
     /**
      * the id of this channel
@@ -115,6 +133,41 @@ class Channel
      * This may be null in events such as {@see Permissions::GUILD_CREATE} when a message is not pinned.
      */
     protected ?int $last_pin_timestamp;
+    /**
+     * voice region id for the voice channel, automatic when set to null
+     */
+    protected ?string $rtc_region;
+    /**
+     * the camera video quality mode of the voice channel, 1 when not present
+     */
+    protected int $video_quality_mode;
+    /**
+     * an approximate count of messages in a thread, stops counting at 50
+     */
+    protected ?int $message_count;
+    /**
+     * an approximate count of users in a thread, stops counting at 50
+     */
+    protected ?int $member_count;
+    /**
+     * thread-specific fields not needed by other channels
+     */
+    protected ?ThreadMetadata $thread_metadata;
+    /**
+     * thread member object for the current user, if they have joined the thread,
+     * only included on certain API endpoints
+     */
+    protected ?ThreadMember $member;
+    /**
+     * default duration for newly created threads, in minutes, to automatically archive
+     * the thread after recent activity, can be set to: 60, 1440, 4320, 10080
+     */
+    protected ?int $default_auto_archive_duration;
+    /**
+     * computed permissions for the invoking user in the channel, including overwrites,
+     * only included when part of the resolved data received on a slash command interaction
+     */
+    protected ?string $permissions;
 
     public function __construct(array $data)
     {
@@ -135,6 +188,15 @@ class Channel
         $this->application_id = !empty($data['application_id']) ? new Snowflake($data['application_id']) : null;
         $this->parent_id = !empty($data['parent_id']) ? new Snowflake($data['parent_id']) : null;
         $this->last_pin_timestamp = !empty($data['last_pin_timestamp']) ? strtotime($data['last_pin_timestamp']) : null;
+        $this->rtc_region = $data['rtc_region'] ?? null;
+        $this->video_quality_mode = $data['video_quality_mode'] ?? 1;
+        $this->message_count = $data['message_count'] ?? null;
+        $this->member_count = $data['member_count'] ?? null;
+        $this->thread_metadata = !empty($data['thread_metadata']) ? new ThreadMetadata($data['thread_metadata']) : null;
+        $this->member = !empty($data['member']) ? new ThreadMember($data['member']) : null;
+        $this->default_auto_archive_duration = $data['default_auto_archive_duration'] ?? null;
+        $this->permissions = $data['permissions'] ?? null;
+
         $this->permission_overwrites = array_map(fn(array $overwrite) => new Overwrite($overwrite),
             $data['permission_overwrites'] ?? []);
         $this->recipients = array_map(fn(array $recipient) => new User($recipient),
@@ -172,6 +234,10 @@ class Channel
      * @see Channel::TYPE_GUILD_CATEGORY
      * @see Channel::TYPE_GUILD_NEWS
      * @see Channel::TYPE_GUILD_STORE
+     * @see Channel::TYPE_GUILD_NEWS_THREAD
+     * @see Channel::TYPE_GUILD_PUBLIC_THREAD
+     * @see Channel::TYPE_GUILD_PRIVATE_THREAD
+     * @see Channel::TYPE_GUILD_STAGE_VOICE
      */
     public function getType(): int
     {
@@ -363,5 +429,72 @@ class Channel
     public function getLastPinTimestamp(): ?int
     {
         return $this->last_pin_timestamp;
+    }
+
+    /**
+     * voice region id for the voice channel, automatic when set to null
+     */
+    public function getRtcRegion()
+    {
+        return $this->rtc_region;
+    }
+
+    /**
+     * the camera video quality mode of the voice channel, 1 when not present
+     */
+    public function getVideoQualityMode()
+    {
+        return $this->video_quality_mode;
+    }
+
+    /**
+     * an approximate count of messages in a thread, stops counting at 50
+     */
+    public function getMessageCount()
+    {
+        return $this->message_count;
+    }
+
+    /**
+     * an approximate count of users in a thread, stops counting at 50
+     */
+    public function getMemberCount()
+    {
+        return $this->member_count;
+    }
+
+    /**
+     * thread-specific fields not needed by other channels
+     */
+    public function getThreadMetadata(): ?ThreadMetadata
+    {
+        return $this->thread_metadata;
+    }
+
+    /**
+     * thread member object for the current user, if they have joined the thread,
+     * only included on certain API endpoints
+     */
+    public function getMember(): ?ThreadMember
+    {
+        return $this->member;
+    }
+
+    /**
+     * default duration for newly created threads, in minutes, to automatically archive
+     * the thread after recent activity, can be set to: 60, 1440, 4320, 10080
+     */
+    public function getDefaultAutoArchiveDuration()
+    {
+        return $this->default_auto_archive_duration;
+    }
+
+    /**
+     * computed permissions for the invoking user in the channel, including overwrites,
+     * only included when part of the resolved data received on a slash command interaction
+     */
+    public function getPermissions()
+    {
+        return $this->permissions;
     }
 }

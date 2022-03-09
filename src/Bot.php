@@ -127,7 +127,10 @@ class Bot implements LoggerAwareInterface
         if ($this->logger instanceof EchoLogger) {
             $this->setLogger(new EchoLogger($this->options['loglevel']));
         }
-        $this->logger->debug("Options set", ['options' => $this->options]);
+
+        // Filter out the token before logging, we don't want to print that
+        $this->logger->debug("Options set",
+            ['options' => array_replace($this->options, ['token' => '*****' . substr($this->options['token'], -4)])]);
     }
 
     public function getPrefix(): string

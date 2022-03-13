@@ -3,6 +3,8 @@
 namespace SunflowerFuchs\DiscordBot\Helpers;
 
 use Psr\Log\LogLevel;
+use Symfony\Component\OptionsResolver\Exception\InvalidOptionsException;
+use Symfony\Component\OptionsResolver\Options;
 use Symfony\Component\OptionsResolver\OptionsResolver;
 
 class BotOptions extends OptionsResolver
@@ -38,5 +40,27 @@ class BotOptions extends OptionsResolver
             ->default(static::DEFAULT_LOGLEVEL)
             ->allowedTypes('string')
             ->allowedValues(...static::ALLOWED_LOGLEVELS);
+
+        $this->define('dataDir')
+            ->default(getcwd() . DIRECTORY_SEPARATOR . 'data/')
+            ->allowedTypes('string')
+            ->normalize(function (Options $options, string $value): string {
+                // Ensure trailing slash
+                if (substr($value, -strlen(DIRECTORY_SEPARATOR)) !== DIRECTORY_SEPARATOR) {
+                    $value .= DIRECTORY_SEPARATOR;
+                }
+
+                // if dir already exists, we can successfully return here
+                if (is_dir($value)) {
+                    return $value;
+                }
+
+                // try to create the directory and return it on success
+                if (@mkdir($value, 0775, true) === true) {
+                    return $value;
+                }
+
+                throw new InvalidOptionsException('The option "dataDir" was expected to be a valid directory, but it could neither be found nor created. Try using an absolute path, or check its permissions.');
+            });
     }
 }

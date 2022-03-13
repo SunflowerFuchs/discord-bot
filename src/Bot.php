@@ -459,6 +459,11 @@ class Bot implements LoggerAwareInterface
         }
     }
 
+    public function getDataDir(): string
+    {
+        return $this->options['dataDir'];
+    }
+
     public function getApiClient(): Client
     {
         static $apiClient;

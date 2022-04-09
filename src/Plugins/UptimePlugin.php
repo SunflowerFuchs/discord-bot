@@ -5,7 +5,7 @@ namespace SunflowerFuchs\DiscordBot\Plugins;
 
 
 use DateTime;
-use SunflowerFuchs\DiscordBot\ApiObjects\Message;
+use SunflowerFuchs\DiscordBot\Api\Objects\Message;
 
 class UptimePlugin extends BasePlugin
 {

@@ -12,7 +12,7 @@ use Ratchet\RFC6455\Messaging\Message as RatchetMessage;
 use React\EventLoop\Factory;
 use React\EventLoop\StreamSelectLoop;
 use React\EventLoop\TimerInterface;
-use SunflowerFuchs\DiscordBot\ApiObjects\Message;
+use SunflowerFuchs\DiscordBot\Api\Objects\Message;
 use SunflowerFuchs\DiscordBot\Helpers\BotOptions;
 use SunflowerFuchs\DiscordBot\Helpers\EchoLogger;
 use SunflowerFuchs\DiscordBot\Helpers\EventManager;

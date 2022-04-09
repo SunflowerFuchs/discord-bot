@@ -2,10 +2,10 @@
 
 namespace SunflowerFuchs\DiscordBot\Helpers;
 
-use SunflowerFuchs\DiscordBot\ApiObjects\ActionRowComponent;
-use SunflowerFuchs\DiscordBot\ApiObjects\ButtonComponent;
-use SunflowerFuchs\DiscordBot\ApiObjects\Component;
-use SunflowerFuchs\DiscordBot\ApiObjects\SelectMenuComponent;
+use SunflowerFuchs\DiscordBot\Api\Objects\ActionRowComponent;
+use SunflowerFuchs\DiscordBot\Api\Objects\ButtonComponent;
+use SunflowerFuchs\DiscordBot\Api\Objects\Component;
+use SunflowerFuchs\DiscordBot\Api\Objects\SelectMenuComponent;
 
 class ComponentFactory
 {

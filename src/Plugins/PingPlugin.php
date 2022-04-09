@@ -4,9 +4,9 @@
 namespace SunflowerFuchs\DiscordBot\Plugins;
 
 
-use SunflowerFuchs\DiscordBot\ApiObjects\Message;
-use SunflowerFuchs\DiscordBot\ApiObjects\Snowflake;
-use SunflowerFuchs\DiscordBot\ApiObjects\User;
+use SunflowerFuchs\DiscordBot\Api\Objects\Message;
+use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
+use SunflowerFuchs\DiscordBot\Api\Objects\User;
 
 class PingPlugin extends BasePlugin
 {

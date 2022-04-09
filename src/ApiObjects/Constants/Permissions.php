@@ -1,7 +1,7 @@
 <?php
 
 
-namespace SunflowerFuchs\DiscordBot\ApiObjects;
+namespace SunflowerFuchs\DiscordBot\ApiObjects\Constants;
 
 
 class Permissions

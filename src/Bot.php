@@ -377,7 +377,43 @@ class Bot implements LoggerAwareInterface
     {
         $this->logger->warning("Gateway was unexpectedly closed, reason: ${errorCode} - ${errorMessage}");
         $this->logger->info("Attempting to reconnect after unexpected disconnect...");
-        $this->reconnectGateway();
+
+        $recoverableErrorCodes = [
+            // Unknown error: We're not sure what went wrong. Try reconnecting?
+            4000 => true,
+            // Unknown opcode: You sent an invalid Gateway opcode or an invalid payload for an opcode. Don't do that!
+            4001 => true,
+            // Decode error: You sent an invalid payload to us. Don't do that!
+            4002 => true,
+            // Not authenticated: You sent us a payload prior to identifying.
+            4003 => true,
+            // Authentication failed: The account token sent with your identify payload is incorrect.
+            4004 => false,
+            // Already authenticated: You sent more than one identify payload. Don't do that!
+            4005 => true,
+            // Invalid seq: The sequence sent when resuming the session was invalid. Reconnect and start a new session.
+            4007 => true,
+            // Rate limited: Woah nelly! You're sending payloads to us too quickly. Slow it down! You will be disconnected on receiving this.
+            4008 => true,
+            // Session timed out: Your session timed out. Reconnect and start a new one.
+            4009 => true,
+            // Invalid shard: You sent us an invalid shard when identifying.
+            4010 => false,
+            // Sharding required: The session would have handled too many guilds - you are required to shard your connection in order to connect.
+            4011 => false,
+            // Invalid API version: You sent an invalid version for the gateway.
+            4012 => false,
+            // Invalid intent(s): You sent an invalid intent for a Gateway Intent. You may have incorrectly calculated the bitwise value.
+            4013 => false,
+            // Disallowed intent(s): You sent a disallowed intent for a Gateway Intent. You may have tried to specify an intent that you have not enabled or are not approved for.
+            4014 => false,
+        ];
+        if (!$recoverableErrorCodes[$errorCode] ?? true) {
+            $this->reconnectGateway();
+            return;
+        }
+
+        $this->stop();
     }
 
     protected function identify(): void

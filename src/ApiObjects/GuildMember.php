@@ -9,7 +9,7 @@ use GuzzleHttp\Client;
 class GuildMember
 {
     /**
-     * object the user this guild member represents
+     * the user this guild member represents
      */
     protected ?User $user;
     /**
@@ -124,7 +124,7 @@ class GuildMember
      *
      * @return bool
      */
-    public function getDeaf(): bool
+    public function isDeafened(): bool
     {
         return $this->deaf;
     }
@@ -134,7 +134,7 @@ class GuildMember
      *
      * @return bool
      */
-    public function getMute(): bool
+    public function isMuted(): bool
     {
         return $this->mute;
     }
@@ -144,7 +144,7 @@ class GuildMember
      *
      * @return bool
      */
-    public function getPending(): bool
+    public function isPending(): bool
     {
         return $this->pending;
     }

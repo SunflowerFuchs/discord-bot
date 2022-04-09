@@ -62,6 +62,4 @@ class EmbedVideo
     {
         return $this->width;
     }
-
-
 }

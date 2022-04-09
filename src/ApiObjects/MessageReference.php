@@ -63,7 +63,7 @@ class   MessageReference
      * when sending, whether to error if the referenced message doesn't exist
      * instead of sending as a normal (non-reply) message, default true
      */
-    public function getFailIfNotExists(): bool
+    public function failIfNotExists(): bool
     {
         return $this->fail_if_not_exists;
     }

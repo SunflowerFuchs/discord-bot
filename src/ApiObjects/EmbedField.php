@@ -15,7 +15,7 @@ class EmbedField
      */
     protected string $value;
     /**
-     * whether or not this field should display inline
+     * whether this field should display inline
      */
     protected bool $inline;
 
@@ -27,6 +27,7 @@ class EmbedField
     }
 
     /**
+     * name of the field
      * @return string
      */
     public function getName(): string
@@ -35,6 +36,7 @@ class EmbedField
     }
 
     /**
+     * value of the field
      * @return string
      */
     public function getValue(): string
@@ -43,9 +45,10 @@ class EmbedField
     }
 
     /**
+     * whether this field should display inline
      * @return bool
      */
-    public function getInline(): bool
+    public function isInline(): bool
     {
         return $this->inline;
     }

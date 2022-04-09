@@ -2,6 +2,8 @@
 
 namespace SunflowerFuchs\DiscordBot\ApiObjects;
 
+use SunflowerFuchs\DiscordBot\ApiObjects\Constants\Permissions;
+
 class Overwrite
 {
     const TYPE_ROLE = 0;

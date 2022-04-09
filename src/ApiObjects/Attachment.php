@@ -13,6 +13,10 @@ class Attachment
      */
     protected string $filename;
     /**
+     * description for the file
+     */
+    protected string $description;
+    /**
      * the attachment's media type
      */
     protected string $content_type;
@@ -31,22 +35,31 @@ class Attachment
     /**
      * height of file (if image)
      */
-    protected ?int $height;
+    protected int $height;
     /**
      * width of file (if image)
      */
-    protected ?int $width;
+    protected int $width;
+    /**
+     * whether this attachment is ephemeral
+     *
+     * Ephemeral attachments will automatically be removed after a set period of time.
+     * Ephemeral attachments on messages are guaranteed to be available as long as the message itself exists.
+     */
+    protected bool $ephemeral;
 
     public function __construct(array $data)
     {
         $this->id = new Snowflake($data['id']);
         $this->filename = $data['filename'];
-        $this->filename = $data['content_type'] ?? '';
+        $this->description = $data['description'] ?? '';
+        $this->content_type = $data['content_type'] ?? '';
         $this->size = intval($data['size']);
         $this->url = $data['url'];
         $this->proxy_url = $data['proxy_url'];
-        $this->height = !empty($data['height']) ? intval($data['height']) : null;
-        $this->width = !empty($data['width']) ? intval($data['width']) : null;
+        $this->height = !empty($data['height']) ? intval($data['height']) : 0;
+        $this->width = !empty($data['width']) ? intval($data['width']) : 0;
+        $this->ephemeral = $data['ephemeral'] ?? false;
     }
 
     /**
@@ -67,6 +80,15 @@ class Attachment
     public function getFilename(): string
     {
         return $this->filename;
+    }
+
+    /**
+     * description for the file
+     * @return string
+     */
+    public function getDescription(): string
+    {
+        return $this->description;
     }
 
     /**
@@ -110,9 +132,9 @@ class Attachment
     /**
      * Height of the attachment, if image
      *
-     * @return ?int
+     * @return int
      */
-    public function getHeight(): ?int
+    public function getHeight(): int
     {
         return $this->height;
     }
@@ -120,12 +142,22 @@ class Attachment
     /**
      * Width of the attachment, if image
      *
-     * @return ?int
+     * @return int
      */
-    public function getWidth(): ?int
+    public function getWidth(): int
     {
         return $this->width;
     }
 
-
+    /**
+     * whether this attachment is ephemeral
+     *
+     * Ephemeral attachments will automatically be removed after a set period of time.
+     * Ephemeral attachments on messages are guaranteed to be available as long as the message itself exists.
+     * @return bool
+     */
+    public function isEphemeral(): bool
+    {
+        return $this->ephemeral;
+    }
 }

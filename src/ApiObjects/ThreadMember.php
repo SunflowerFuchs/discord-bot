@@ -26,7 +26,7 @@ class ThreadMember
         $this->id = !empty($data['id']) ? new Snowflake($data['id']) : null;
         $this->user_id = !empty($data['user_id']) ? new Snowflake($data['user_id']) : null;
         $this->join_timestamp = strtotime($data['join_timestamp']);
-        $this->join_timestamp = $data['flags'];
+        $this->flags = $data['flags'];
     }
 
     /**

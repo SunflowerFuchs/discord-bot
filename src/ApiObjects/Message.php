@@ -276,7 +276,7 @@ class Message
      */
     public function isCommand(string $prefix): bool
     {
-        $content = $this->getContent(true);
+        $content = $this->getContent();
         $prefixLength = strlen($prefix);
         return $this->isUserMessage()
             && substr($content, 0, $prefixLength) === $prefix
@@ -295,7 +295,7 @@ class Message
         if (!$this->isCommand($prefix)) {
             return '';
         }
-        return substr(explode(' ', $this->getContent(true))[0], strlen($prefix));
+        return substr(explode(' ', $this->getContent())[0], strlen($prefix));
     }
 
     /**
@@ -310,7 +310,7 @@ class Message
         if (!$this->isCommand($prefix)) {
             return [];
         }
-        $params = explode(' ', $this->getContent(true));
+        $params = explode(' ', $this->getContent());
         array_shift($params);
         return $params;
     }

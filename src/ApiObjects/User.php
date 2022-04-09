@@ -5,14 +5,11 @@ namespace SunflowerFuchs\DiscordBot\ApiObjects;
 
 
 use GuzzleHttp\Client;
+use SunflowerFuchs\DiscordBot\ApiObjects\Constants\UserPremiumTier;
 use SunflowerFuchs\DiscordBot\Bot;
 
 class User
 {
-    const PREMIUM_NONE = 0;
-    const PREMIUM_CLASSIC = 1;
-    const PREMIUM_NITRO = 2;
-
     /**
      * the user's id
      */
@@ -32,15 +29,15 @@ class User
     /**
      * whether the user belongs to an OAuth2 application
      */
-    protected ?bool $bot;
+    protected bool $bot;
     /**
      * whether the user is an Official Discord System user (part of the urgent message system)
      */
-    protected ?bool $system;
+    protected bool $system;
     /**
      * whether the user has two factor enabled on their account
      */
-    protected ?bool $mfa;
+    protected bool $mfa;
     /**
      * the user's banner, or null if unset
      */
@@ -56,7 +53,7 @@ class User
     /**
      * whether the email on this account has been verified
      */
-    protected ?bool $verified;
+    protected bool $verified;
     /**
      * the user's email
      */
@@ -64,15 +61,15 @@ class User
     /**
      * the flags on a user's account
      */
-    protected ?int $flags;
+    protected int $flags;
     /**
      * the type of Nitro subscription on a user's account
      */
-    protected ?int $premium_type;
+    protected int $premium_type;
     /**
      * the public flags on a user's account
      */
-    protected ?int $public_flags;
+    protected int $public_flags;
 
     public function __construct(array $data)
     {
@@ -94,7 +91,7 @@ class User
         $this->public_flags = $data['public_flags'] ?? 0;
     }
 
-    public static function loadById(Client $apiClient, string $userId): ?self
+    public static function loadById(Client $apiClient, Snowflake $userId): ?self
     {
         $res = $apiClient->get("users/${userId}");
         if ($res->getStatusCode() === 200) {
@@ -283,9 +280,7 @@ class User
     /**
      * Get the type of the nitro subscription
      * @return int
-     * @see PREMIUM_NONE
-     * @see PREMIUM_NITRO
-     * @see PREMIUM_CLASSIC
+     * @see UserPremiumTier
      */
     public function getPremiumType(): int
     {

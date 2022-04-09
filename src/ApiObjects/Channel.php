@@ -5,6 +5,7 @@ namespace SunflowerFuchs\DiscordBot\ApiObjects;
 
 
 use GuzzleHttp\Client;
+use SunflowerFuchs\DiscordBot\ApiObjects\Constants\Permissions;
 use SunflowerFuchs\DiscordBot\Bot;
 
 class Channel
@@ -299,7 +300,7 @@ class Channel
      *
      * @return bool
      */
-    public function getNsfw(): bool
+    public function isNsfw(): bool
     {
         return $this->nsfw;
     }

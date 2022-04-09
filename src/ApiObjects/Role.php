@@ -2,6 +2,8 @@
 
 namespace SunflowerFuchs\DiscordBot\ApiObjects;
 
+use SunflowerFuchs\DiscordBot\ApiObjects\Constants\Permissions;
+
 class Role
 {
     protected Snowflake $id;

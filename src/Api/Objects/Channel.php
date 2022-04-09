@@ -5,64 +5,19 @@ namespace SunflowerFuchs\DiscordBot\Api\Objects;
 
 
 use GuzzleHttp\Client;
+use SunflowerFuchs\DiscordBot\Api\Constants\ChannelType;
 use SunflowerFuchs\DiscordBot\Api\Constants\Permissions;
 use SunflowerFuchs\DiscordBot\Bot;
 
 class Channel
 {
     /**
-     * a text channel within a server
-     */
-    const TYPE_GUILD_TEXT = 0;
-    /**
-     * a direct message between users
-     */
-    const TYPE_DM = 1;
-    /**
-     * a voice channel within a server
-     */
-    const TYPE_GUILD_VOICE = 2;
-    /**
-     * a direct message between multiple users
-     */
-    const TYPE_GROUP_DM = 3;
-    /**
-     * an organizational category that contains up to 50 channels
-     */
-    const TYPE_GUILD_CATEGORY = 4;
-    /**
-     * a channel that users can follow and crosspost into their own server
-     */
-    const TYPE_GUILD_NEWS = 5;
-    /**
-     * a channel in which game developers can sell their game on Discord
-     */
-    const TYPE_GUILD_STORE = 6;
-    /**
-     * a temporary sub-channel within a GUILD_NEWS channel
-     */
-    const TYPE_GUILD_NEWS_THREAD = 10;
-    /**
-     * a temporary sub-channel within a GUILD_TEXT channel
-     */
-    const TYPE_GUILD_PUBLIC_THREAD = 11;
-    /**
-     * a temporary sub-channel within a GUILD_TEXT channel that is only viewable by those invited
-     * and those with the MANAGE_THREADS permission
-     */
-    const TYPE_GUILD_PRIVATE_THREAD = 12;
-    /**
-     * a voice channel for hosting events with an audience
-     */
-    const TYPE_GUILD_STAGE_VOICE = 13;
-
-
-    /**
      * the id of this channel
      */
     protected Snowflake $id;
     /**
      * the type of channel
+     * @see ChannelType
      */
     protected int $type;
     /**
@@ -228,17 +183,7 @@ class Channel
      * Returns the type of the channel
      *
      * @return int
-     * @see Channel::TYPE_GUILD_TEXT
-     * @see Channel::TYPE_DM
-     * @see Channel::TYPE_GUILD_VOICE
-     * @see Channel::TYPE_GROUP_DM
-     * @see Channel::TYPE_GUILD_CATEGORY
-     * @see Channel::TYPE_GUILD_NEWS
-     * @see Channel::TYPE_GUILD_STORE
-     * @see Channel::TYPE_GUILD_NEWS_THREAD
-     * @see Channel::TYPE_GUILD_PUBLIC_THREAD
-     * @see Channel::TYPE_GUILD_PRIVATE_THREAD
-     * @see Channel::TYPE_GUILD_STAGE_VOICE
+     * @see ChannelType
      */
     public function getType(): int
     {

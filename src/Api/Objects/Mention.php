@@ -4,6 +4,8 @@
 namespace SunflowerFuchs\DiscordBot\Api\Objects;
 
 
+use SunflowerFuchs\DiscordBot\Api\Constants\ChannelType;
+
 class Mention
 {
     /**
@@ -55,13 +57,7 @@ class Mention
      * Returns the type of the channel
      *
      * @return int
-     * @see Channel::TYPE_GUILD_TEXT
-     * @see Channel::TYPE_DM
-     * @see Channel::TYPE_GUILD_VOICE
-     * @see Channel::TYPE_GROUP_DM
-     * @see Channel::TYPE_GUILD_CATEGORY
-     * @see Channel::TYPE_GUILD_NEWS
-     * @see Channel::TYPE_GUILD_STORE
+     * @see ChannelType
      */
     public function getType(): int
     {

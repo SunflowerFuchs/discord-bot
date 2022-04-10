@@ -4,6 +4,8 @@
 namespace SunflowerFuchs\DiscordBot\Api\Objects;
 
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 use SunflowerFuchs\DiscordBot\Bot;
 
 class Emoji
@@ -54,6 +56,139 @@ class Emoji
 
         $this->roles = array_map(fn(array $roleData) => new Role($roleData),
             $data['roles'] ?? []);
+    }
+
+    /**
+     * @param Client $apiClient
+     * @param string $guildId
+     * @return static[]
+     * @throws GuzzleException
+     */
+    public static function listForGuild(Client $apiClient, string $guildId): array
+    {
+        $res = $apiClient->get("guilds/${guildId}/emojis");
+        if ($res->getStatusCode() === 200) {
+            return array_map(fn(array $emojiData) => new static($emojiData),
+                json_decode($res->getBody()->getContents(), true));
+        }
+
+        return [];
+    }
+
+    /**
+     * @param Client $apiClient
+     * @param string $guildId
+     * @param string $emojiId
+     * @return ?static
+     * @throws GuzzleException
+     */
+    public static function loadById(Client $apiClient, string $guildId, string $emojiId): ?self
+    {
+        $res = $apiClient->get("guilds/${guildId}/emojis/${emojiId}");
+        if ($res->getStatusCode() === 200) {
+            return new static(json_decode($res->getBody()->getContents(), true));
+        }
+
+        return null;
+    }
+
+    /**
+     * @param Client $apiClient
+     * @param string $guildId
+     * @param string $name
+     * @param string $imageData a data: URI for the image
+     * @param Snowflake[] $roles
+     * @param string $reason
+     * @return static|null
+     * @throws GuzzleException
+     */
+    public static function create(
+        Client $apiClient,
+        string $guildId,
+        string $name,
+        string $imageData,
+        array $roles,
+        string $reason
+    ): ?self {
+        $params = [
+            'name' => $name,
+            'image' => $imageData,
+            'roles' => $roles
+        ];
+
+        $options = [
+            'json' => $params
+        ];
+        if (!empty($reason)) {
+            $options['headers'] = ['X-Audit-Log-Reason' => $reason];
+        }
+
+        $res = $apiClient->post("guilds/${guildId}/emojis/", $options);
+        if ($res->getStatusCode() === 200) {
+            return new static(json_decode($res->getBody()->getContents(), true));
+        }
+
+        return null;
+    }
+
+    /**
+     * @param Client $apiClient
+     * @param string $guildId
+     * @param string $emojiId
+     * @param ?string $newName
+     * @param ?Snowflake[] $roles
+     * @param string $reason
+     * @return static|null
+     * @throws GuzzleException
+     */
+    public static function modify(
+        Client $apiClient,
+        string $guildId,
+        string $emojiId,
+        string $newName = null,
+        array $roles = null,
+        string $reason = ''
+    ): ?self {
+        $params = [];
+        if (!is_null($newName)) {
+            $params['name'] = $newName;
+        }
+        if (!is_null($roles)) {
+            $params['roles'] = $roles;
+        }
+
+        $options = [
+            'json' => $params
+        ];
+        if (!empty($reason)) {
+            $options['headers'] = ['X-Audit-Log-Reason' => $reason];
+        }
+
+        $res = $apiClient->patch("guilds/${guildId}/emojis/${emojiId}", $options);
+        if ($res->getStatusCode() === 200) {
+            return new static(json_decode($res->getBody()->getContents(), true));
+        }
+
+        return null;
+    }
+
+    /**
+     * @param Client $apiClient
+     * @param string $guildId
+     * @param string $emojiId
+     * @param string $reason
+     * @return bool
+     * @throws GuzzleException
+     */
+    public static function delete(Client $apiClient, string $guildId, string $emojiId, string $reason = ''): bool
+    {
+        $options = [];
+        if (!empty($reason)) {
+            $options['headers'] = ['X-Audit-Log-Reason' => $reason];
+        }
+
+        $res = $apiClient->delete("guilds/${guildId}/emojis/${emojiId}", $options);
+        return $res->getStatusCode() === 204;
     }
 
     /**

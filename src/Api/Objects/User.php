@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 
 namespace SunflowerFuchs\DiscordBot\Api\Objects;
 
@@ -81,8 +83,8 @@ class User
         $this->bot = $data['bot'] ?? false;
         $this->system = $data['system'] ?? false;
         $this->mfa = $data['mfa_enabled'] ?? false;
-        $this->banner = $data['banner'] ?? false;
-        $this->accent_color = $data['accent_color'] ?? false;
+        $this->banner = $data['banner'] ?? null;
+        $this->accent_color = $data['accent_color'] ?? 0;
         $this->locale = $data['locale'] ?? 'en_US';
         $this->verified = $data['verified'] ?? true;
         $this->email = $data['email'] ?? null;

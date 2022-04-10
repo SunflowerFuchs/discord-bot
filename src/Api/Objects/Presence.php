@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SunflowerFuchs\DiscordBot\Api\Objects;
 
 use SunflowerFuchs\DiscordBot\Api\Constants\Status;

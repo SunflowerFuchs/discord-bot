@@ -222,6 +222,11 @@ class Bot implements LoggerAwareInterface
         return true;
     }
 
+    /**
+     * @param string $command
+     * @param callable(Message):bool $handler
+     * @return bool
+     */
     public function registerCommand(string $command, callable $handler): bool
     {
         if (isset($this->commands[$command])) {
@@ -504,7 +509,7 @@ class Bot implements LoggerAwareInterface
     {
         static $apiClient;
         return $apiClient ?? ($apiClient = new Client([
-                'base_uri' => 'https://discordapp.com/api/',
+                'base_uri' => 'https://discord.com/api/',
                 'headers' => $this->header,
             ]));
     }

@@ -11,7 +11,7 @@ abstract class BasePlugin
 {
     protected ?Bot $bot = null;
 
-    abstract function init();
+    abstract public function init();
 
     /**
      * @return Bot

@@ -125,7 +125,7 @@ class Emoji
             $options['headers'] = ['X-Audit-Log-Reason' => $reason];
         }
 
-        $res = $apiClient->post("guilds/${guildId}/emojis/", $options);
+        $res = $apiClient->post("guilds/${guildId}/emojis", $options);
         if ($res->getStatusCode() === 200) {
             return new static(json_decode($res->getBody()->getContents(), true));
         }

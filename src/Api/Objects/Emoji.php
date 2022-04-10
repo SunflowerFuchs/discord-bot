@@ -51,7 +51,7 @@ class Emoji
         $this->id = !empty($data['id']) ? new Snowflake($data['id']) : null;
         $this->name = $data['name'] ?? null;
         $this->user = !empty($data['user']) ? new User($data['user']) : null;
-        $this->require_colons = $data['require_colons'] ?? true;
+        $this->require_colons = $data['require_colons'] ?? $this->isCustom();
         $this->managed = $data['managed'] ?? false;
         $this->animated = $data['animated'] ?? false;
         $this->available = $data['available'] ?? true;
@@ -244,6 +244,17 @@ class Emoji
     }
 
     /**
+     * Whether this is a custom emoji
+     *
+     * Custom emojis have an id, while regular ones only have a name
+     * @return bool
+     */
+    public function isCustom(): bool
+    {
+        return $this->getId() === null;
+    }
+
+    /**
      * If the image is managed by a bot/integration
      *
      * @return bool
@@ -279,7 +290,7 @@ class Emoji
      * @param int $size
      * @return ?string
      */
-    public function getUrl(int $size = 1024): ?string
+    public function getImageUrl(int $size = 1024): ?string
     {
         $id = $this->getId();
         if (!$id) {

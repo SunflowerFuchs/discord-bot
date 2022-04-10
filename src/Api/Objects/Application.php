@@ -3,6 +3,7 @@
 namespace SunflowerFuchs\DiscordBot\Api\Objects;
 
 use SunflowerFuchs\DiscordBot\Api\Constants\ApplicationFlag;
+use SunflowerFuchs\DiscordBot\Bot;
 
 class Application
 {
@@ -49,6 +50,7 @@ class Application
     protected ?User $owner;
     /**
      * the hex encoded key for verification in interactions and the GameSDK's GetTicket
+     * @see https://discord.com/developers/docs/game-sdk/applications#getticket
      */
     protected string $verify_key;
     /**
@@ -136,9 +138,34 @@ class Application
      * the icon hash of the app
      * @return ?string
      */
-    public function getIcon(): ?string
+    public function getIconHash(): ?string
     {
         return $this->icon;
+    }
+
+    /**
+     * the icon url of the app
+     * @param string $format If the image is not available in the given format, null is returned
+     * @param int $size An int between 16 and 4096. If the user has no custom avatar, the size parameter is ignored
+     * @return ?string
+     */
+    public function getIconUrl(string $format = 'png', int $size = 1024): ?string
+    {
+        // make sure the size is within the allowed range
+        $size = max(min($size, 4096), 16);
+
+        $baseImageUrl = Bot::BaseImageUrl;
+        $hash = $this->getIconHash();
+        if (is_null($hash)) {
+            return null;
+        }
+
+        if (!in_array($format, ['png', 'jpg', 'jpeg', 'webp'])) {
+            return null;
+        }
+
+        $appId = $this->getId();
+        return "${baseImageUrl}/app-icons/${appId}/${hash}.${format}?size=${size}";
     }
 
     /**
@@ -253,9 +280,34 @@ class Application
      * the application's default rich presence invite cover image hash
      * @return ?string
      */
-    public function getCoverImage(): ?string
+    public function getCoverImageHash(): ?string
     {
         return $this->cover_image;
+    }
+
+    /**
+     * the icon url of the app
+     * @param string $format If the image is not available in the given format, null is returned
+     * @param int $size An int between 16 and 4096. If the user has no custom avatar, the size parameter is ignored
+     * @return ?string
+     */
+    public function getCoverImageUrl(string $format = 'png', int $size = 1024): ?string
+    {
+        // make sure the size is within the allowed range
+        $size = max(min($size, 4096), 16);
+
+        $baseImageUrl = Bot::BaseImageUrl;
+        $hash = $this->getCoverImageHash();
+        if (is_null($hash)) {
+            return null;
+        }
+
+        if (!in_array($format, ['png', 'jpg', 'jpeg', 'webp'])) {
+            return null;
+        }
+
+        $appId = $this->getId();
+        return "${baseImageUrl}/app-icons/${appId}/${hash}.${format}?size=${size}";
     }
 
     /**

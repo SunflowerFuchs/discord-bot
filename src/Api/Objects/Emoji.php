@@ -46,12 +46,14 @@ class Emoji
     {
         $this->id = !empty($data['id']) ? new Snowflake($data['id']) : null;
         $this->name = $data['name'] ?? null;
-        $this->roles = $data['roles'] ?? [];
         $this->user = !empty($data['user']) ? new User($data['user']) : null;
         $this->require_colons = $data['require_colons'] ?? true;
         $this->managed = $data['managed'] ?? false;
         $this->animated = $data['animated'] ?? false;
         $this->available = $data['available'] ?? true;
+
+        $this->roles = array_map(fn(array $roleData) => new Role($roleData),
+            $data['roles'] ?? []);
     }
 
     /**
@@ -151,7 +153,7 @@ class Emoji
         $size = max(min($size, 4096), 16);
 
         $baseUrl = Bot::BaseImageUrl;
-        $ending = $this->isAnimated() ? 'gif' : 'png';
-        return "${baseUrl}emojis/${id}.${ending}?size=${size}";
+        $format = $this->isAnimated() ? 'gif' : 'png';
+        return "${baseUrl}emojis/${id}.${format}?size=${size}";
     }
 }

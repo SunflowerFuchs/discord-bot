@@ -30,7 +30,8 @@ class UserActivityAssets
     }
 
     /**
-     * see Activity Asset Image
+     * hash of the large asset image
+     * @see https://discord.com/developers/docs/topics/gateway#activity-object-activity-asset-image
      * @return string
      */
     public function getLargeImage(): string
@@ -48,7 +49,8 @@ class UserActivityAssets
     }
 
     /**
-     * see Activity Asset Image
+     * hash of the small activity image
+     * @see https://discord.com/developers/docs/topics/gateway#activity-object-activity-asset-image
      * @return string
      */
     public function getSmallImage(): string

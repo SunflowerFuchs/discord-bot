@@ -15,9 +15,9 @@ class SelectOption
     /**
      * an additional description of the option, max 100 characters
      */
-    protected ?string $description;
+    protected string $description;
     /**
-     * partial emoji object
+     * partial emoji object (name, id, animated)
      */
     protected ?Emoji $emoji;
     /**
@@ -29,7 +29,7 @@ class SelectOption
     {
         $this->label = $data['label'];
         $this->value = $data['value'];
-        $this->description = $data['description'] ?? null;
+        $this->description = $data['description'] ?? '';
         $this->emoji = !empty($data['emoji']) ? new Emoji($data['emoji']) : null;
         $this->default = $data['default'] ?? false;
     }
@@ -53,7 +53,7 @@ class SelectOption
     /**
      * an additional description of the option, max 100 characters
      */
-    public function getDescription(): ?string
+    public function getDescription(): string
     {
         return $this->description;
     }

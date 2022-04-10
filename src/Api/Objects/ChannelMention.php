@@ -6,7 +6,7 @@ namespace SunflowerFuchs\DiscordBot\Api\Objects;
 
 use SunflowerFuchs\DiscordBot\Api\Constants\ChannelType;
 
-class Mention
+class ChannelMention
 {
     /**
      * id of the channel

@@ -21,9 +21,9 @@ class ButtonComponent extends Component
     /**
      * text that appears on the button, max 80 characters
      */
-    protected ?string $label;
+    protected string $label;
     /**
-     * name, id, and animated
+     * partial emoji (name, id, and animated)
      */
     protected ?Emoji $emoji;
     /**
@@ -37,8 +37,8 @@ class ButtonComponent extends Component
 
         $this->custom_id = $data['custom_id'] ?? null;
         $this->disabled = $data['disabled'] ?? false;
-        $this->style = $data['style'] ?? null;
-        $this->label = $data['label'] ?? null;
+        $this->style = $data['style'];
+        $this->label = $data['label'] ?? '';
         $this->emoji = !empty($data['emoji']) ? new Emoji($data['emoji']) : null;
         $this->url = $data['url'] ?? null;
     }
@@ -54,7 +54,7 @@ class ButtonComponent extends Component
     /**
      * whether the component is disabled, default false
      */
-    public function getDisabled(): ?bool
+    public function isDisabled(): bool
     {
         return $this->disabled;
     }
@@ -70,7 +70,7 @@ class ButtonComponent extends Component
     /**
      * text that appears on the button, max 80 characters
      */
-    public function getLabel(): ?string
+    public function getLabel(): string
     {
         return $this->label;
     }

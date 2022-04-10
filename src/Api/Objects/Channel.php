@@ -7,6 +7,7 @@ namespace SunflowerFuchs\DiscordBot\Api\Objects;
 use GuzzleHttp\Client;
 use SunflowerFuchs\DiscordBot\Api\Constants\ChannelType;
 use SunflowerFuchs\DiscordBot\Api\Constants\Permissions;
+use SunflowerFuchs\DiscordBot\Api\Constants\VideoQuality;
 use SunflowerFuchs\DiscordBot\Bot;
 
 class Channel
@@ -90,11 +91,12 @@ class Channel
      */
     protected ?int $last_pin_timestamp;
     /**
-     * voice region id for the voice channel, automatic when set to null
+     * {@see VoiceRegion} id for the voice channel, automatic when set to null
      */
     protected ?string $rtc_region;
     /**
-     * the camera video quality mode of the voice channel, 1 when not present
+     * the camera video quality mode of the voice channel, {@see VideoQuality::AUTO} when not present
+     * @see VideoQuality
      */
     protected int $video_quality_mode;
     /**
@@ -145,7 +147,7 @@ class Channel
         $this->parent_id = !empty($data['parent_id']) ? new Snowflake($data['parent_id']) : null;
         $this->last_pin_timestamp = !empty($data['last_pin_timestamp']) ? strtotime($data['last_pin_timestamp']) : null;
         $this->rtc_region = $data['rtc_region'] ?? null;
-        $this->video_quality_mode = $data['video_quality_mode'] ?? 1;
+        $this->video_quality_mode = $data['video_quality_mode'] ?? VideoQuality::AUTO;
         $this->message_count = $data['message_count'] ?? null;
         $this->member_count = $data['member_count'] ?? null;
         $this->thread_metadata = !empty($data['thread_metadata']) ? new ThreadMetadata($data['thread_metadata']) : null;

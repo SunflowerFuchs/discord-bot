@@ -3,54 +3,12 @@
 
 namespace SunflowerFuchs\DiscordBot\Api\Objects;
 
+use SunflowerFuchs\DiscordBot\Api\Constants\MessageFlag;
+use SunflowerFuchs\DiscordBot\Api\Constants\MessageType;
 use SunflowerFuchs\DiscordBot\Helpers\ComponentFactory;
 
-/**
- * @TODO: add docblock comments
- */
 class Message
 {
-    const TYPE_DEFAULT = 0;
-    const TYPE_RECIPIENT_ADD = 1;
-    const TYPE_RECIPIENT_REMOVE = 2;
-    const TYPE_CALL = 3;
-    const TYPE_CHANNEL_NAME_CHANGE = 4;
-    const TYPE_CHANNEL_ICON_CHANGE = 5;
-    const TYPE_CHANNEL_PINNED_MESSAGE = 6;
-    const TYPE_GUILD_MEMBER_JOIN = 7;
-    const TYPE_USER_PREMIUM_GUILD_SUBSCRIPTION = 8;
-    const TYPE_USER_PREMIUM_GUILD_SUBSCRIPTION_TIER_1 = 9;
-    const TYPE_USER_PREMIUM_GUILD_SUBSCRIPTION_TIER_2 = 10;
-    const TYPE_USER_PREMIUM_GUILD_SUBSCRIPTION_TIER_3 = 11;
-    const TYPE_CHANNEL_FOLLOW_ADD = 12;
-    const TYPE_GUILD_DISCOVERY_DISQUALIFIED = 14;
-    const TYPE_GUILD_DISCOVERY_REQUALIFIED = 15;
-    const TYPE_REPLY = 19;
-    const TYPE_APPLICATION_COMMAND = 20;
-    const TYPE_THREAD_STARTER_MESSAGE = 21;
-    const TYPE_GUILD_INVITE_REMINDER = 22;
-
-    /**
-     * this message has been published to subscribed channels (via Channel Following)
-     */
-    const FLAG_CROSSPOSTED = 1 << 0;
-    /**
-     * this message originated from a message in another channel (via Channel Following)
-     */
-    const FLAG_IS_CROSSPOST = 1 << 1;
-    /**
-     * do not include any embeds when serializing this message
-     */
-    const FLAG_SUPPRESS_EMBEDS = 1 << 2;
-    /**
-     * the source message for this crosspost has been deleted (via Channel Following)
-     */
-    const FLAG_SOURCE_MESSAGE_DELETED = 1 << 3;
-    /**
-     * this message came from the urgent message system
-     */
-    const FLAG_URGENT = 1 << 4;
-
     /**
      * id of the message
      */
@@ -82,7 +40,7 @@ class Message
     /**
      * when this message was edited (or null if never)
      */
-    protected ?int $edited_timestamp;
+    protected int $edited_timestamp;
     /**
      * whether this was a TTS message
      */
@@ -94,7 +52,7 @@ class Message
     /**
      * users specifically mentioned in the message
      * with an additional partial member field
-     * @var User[] $mentions
+     * @var UserMention[] $mentions
      */
     protected array $mentions;
     /**
@@ -104,7 +62,7 @@ class Message
     protected array $mention_roles;
     /**
      * channels specifically mentioned in this message
-     * @var Mention[] $mention_channels
+     * @var ChannelMention[] $mention_channels
      */
     protected array $mention_channels;
     /**
@@ -136,6 +94,7 @@ class Message
     protected ?Snowflake $webhook_id;
     /**
      * type of message
+     * @see MessageType
      */
     protected int $type;
     /**
@@ -148,10 +107,12 @@ class Message
     protected ?MessageApplication $application;
     /**
      * reference data sent with crossposted messages and replies
+     * @see https://discord.com/developers/docs/resources/channel#message-types
      */
     protected ?MessageReference $message_reference;
     /**
      * message flags combined as a bitfield
+     * @see MessageFlag
      */
     protected int $flags;
     /**
@@ -161,7 +122,7 @@ class Message
     /**
      * sent if the message is a response to an Interaction
      */
-    protected ?Interaction $interaction;
+    protected ?MessageInteraction $interaction;
     /**
      * the thread that was started from this message, includes thread member object
      */
@@ -184,32 +145,38 @@ class Message
         $this->guild_id = !empty($data['guild_id']) ? new Snowflake($data['guild_id']) : null;
         $this->author = new User($data['author']);
         $this->member = !empty($data['member']) ? new GuildMember($data['member']) : null;
-        $this->content = trim($data['content']);
+        $this->content = $data['content'];
         $this->timestamp = strtotime($data['timestamp']);
-        $this->edited_timestamp = !empty($data['edited_timestamp']) ? strtotime($data['edited_timestamp']) : null;
+        $this->edited_timestamp = !empty($data['edited_timestamp']) ? strtotime($data['edited_timestamp']) : 0;
         $this->tts = $data['tts'] ?? false;
         $this->mention_everyone = $data['mention_everyone'] ?? false;
-        $this->nonce = $data['nonce'] ?? null;
+        $this->nonce = !empty($data['nonce']) ? (string)$data['nonce'] : null;
         $this->pinned = $data['pinned'] ?? false;
         $this->webhook_id = !empty($data['webhook_id']) ? new Snowflake($data['webhook_id']) : null;
         $this->type = $data['type'];
         $this->activity = !empty($data['activity']) ? new MessageActivity($data['activity']) : null;
-        $this->application = !empty($data['application']) ? new MessageApplication($data['application']) : null;
+        $this->application = !empty($data['application']) ? new Application($data['application']) : null;
         $this->message_reference = !empty($data['message_reference']) ? new MessageReference($data['message_reference']) : null;
         $this->flags = $data['flags'] ?? 0;
         $this->referenced_message = !empty($data['referenced_message']) ? new static($data['referenced_message']) : null;
-        $this->interaction = !empty($data['interaction']) ? new Interaction($data['interaction']) : null;
+        $this->interaction = !empty($data['interaction']) ? new MessageInteraction($data['interaction']) : null;
         $this->thread = !empty($data['thread']) ? new Channel($data['thread']) : null;
 
-        $this->mentions = array_map(fn($user) => new User($user), $data['mentions']);
-        $this->mention_roles = array_map(fn($snowflake) => new Snowflake($snowflake), $data['mention_roles']);
-        $this->mention_channels = array_map(fn($mention) => new Mention($mention), $data['mention_channels'] ?? []);
-        $this->attachments = array_map(fn($attachment) => new Attachment($attachment), $data['attachments']);
-        $this->reactions = array_map(fn($reaction) => new Reaction($reaction), $data['reactions'] ?? []);
-        $this->sticker_items = array_map(fn($sticker_item) => new StickerItem($sticker_item),
+        $this->mentions = array_map(fn(array $mentionData) => new UserMention($mentionData),
+            $data['mentions']);
+        $this->mention_roles = array_map(fn($snowflake) => new Snowflake($snowflake),
+            $data['mention_roles']);
+        $this->mention_channels = array_map(fn($mentionData) => new ChannelMention($mentionData),
+            $data['mention_channels'] ?? []);
+        $this->attachments = array_map(fn($attachmentData) => new Attachment($attachmentData),
+            $data['attachments']);
+        $this->reactions = array_map(fn($reactionData) => new Reaction($reactionData),
+            $data['reactions'] ?? []);
+        $this->sticker_items = array_map(fn($itemData) => new StickerItem($itemData),
             $data['sticker_items'] ?? []);
-        $this->embeds = array_map(fn($embed) => new Embed($embed), $data['embeds'] ?? []);
-        $this->components = array_map(fn($component) => ComponentFactory::factory($component),
+        $this->embeds = array_map(fn($embedData) => new Embed($embedData),
+            $data['embeds'] ?? []);
+        $this->components = array_map(fn($componentData) => ComponentFactory::factory($componentData),
             $data['components'] ?? []);
     }
 
@@ -276,7 +243,7 @@ class Message
      */
     public function isCommand(string $prefix): bool
     {
-        $content = $this->getContent();
+        $content = trim($this->getContent());
         $prefixLength = strlen($prefix);
         return $this->isUserMessage()
             && substr($content, 0, $prefixLength) === $prefix
@@ -295,7 +262,7 @@ class Message
         if (!$this->isCommand($prefix)) {
             return '';
         }
-        return substr(explode(' ', $this->getContent())[0], strlen($prefix));
+        return substr(explode(' ', trim($this->getContent()))[0], strlen($prefix));
     }
 
     /**
@@ -310,7 +277,7 @@ class Message
         if (!$this->isCommand($prefix)) {
             return [];
         }
-        $params = explode(' ', $this->getContent());
+        $params = explode(' ', trim($this->getContent()));
         array_shift($params);
         return $params;
     }
@@ -364,7 +331,7 @@ class Message
     }
 
     /**
-     * @return Mention[]
+     * @return ChannelMention[]
      */
     public function getMentionChannels(): ?array
     {
@@ -428,9 +395,9 @@ class Message
      */
     public function isTextMessage(): bool
     {
-        return $this->getType() === static::TYPE_DEFAULT
-            || $this->getType() === static::TYPE_REPLY
-            || $this->getType() === static::TYPE_THREAD_STARTER_MESSAGE;
+        return $this->getType() === MessageType::DEFAULT
+            || $this->getType() === MessageType::REPLY
+            || $this->getType() === MessageType::THREAD_STARTER_MESSAGE;
     }
 
     /**

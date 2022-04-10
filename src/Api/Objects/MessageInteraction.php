@@ -2,18 +2,15 @@
 
 namespace SunflowerFuchs\DiscordBot\Api\Objects;
 
-class Interaction
+class MessageInteraction
 {
-    public const TYPE_PING = 1;
-    public const TYPE_APPLICATION_COMMAND = 2;
-    public const TYPE_MESSAGE_COMPONENT = 3;
-
     /**
      * id of the interaction
      */
     protected Snowflake $id;
     /**
      * the type of interaction
+     * @see InteractionType
      */
     protected int $type;
     /**
@@ -24,6 +21,10 @@ class Interaction
      * the user who invoked the interaction
      */
     protected User $user;
+    /**
+     * the member who invoked the interaction in the guild
+     */
+    protected ?GuildMember $member;
 
     public function __construct(array $data)
     {
@@ -31,6 +32,7 @@ class Interaction
         $this->type = $data['type'];
         $this->name = $data['name'];
         $this->user = new User($data['user']);
+        $this->member = !empty($data['member']) ? new GuildMember($data['member']) : null;
     }
 
     /**
@@ -43,9 +45,7 @@ class Interaction
 
     /**
      * the type of interaction
-     * @see Interaction::TYPE_PING
-     * @see Interaction::TYPE_APPLICATION_COMMAND
-     * @see Interaction::TYPE_MESSAGE_COMPONENT
+     * @see InteractionType
      */
     public function getType(): int
     {
@@ -67,6 +67,4 @@ class Interaction
     {
         return $this->user;
     }
-
-
 }

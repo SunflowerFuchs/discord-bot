@@ -4,15 +4,13 @@
 namespace SunflowerFuchs\DiscordBot\Api\Objects;
 
 
+use SunflowerFuchs\DiscordBot\Api\Constants\MessageActivityType;
+
 class MessageActivity
 {
-    const TYPE_JOIN = 1;
-    const TYPE_SPECTATE = 2;
-    const TYPE_LISTEN = 3;
-    const TYPE_JOIN_REQUEST = 5;
-
     /**
      * type of message activity
+     * @see MessageActivityType
      */
     protected int $type;
     /**
@@ -29,10 +27,7 @@ class MessageActivity
     /**
      * the type of the message activity
      * @return int
-     * @see MessageActivity::TYPE_JOIN
-     * @see MessageActivity::TYPE_SPECTATE
-     * @see MessageActivity::TYPE_LISTEN
-     * @see MessageActivity::TYPE_JOIN_REQUEST
+     * @see MessageActivityType
      */
     public function getType(): int
     {

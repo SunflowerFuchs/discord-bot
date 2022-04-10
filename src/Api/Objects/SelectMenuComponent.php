@@ -22,7 +22,7 @@ class SelectMenuComponent extends Component
     /**
      * custom placeholder text if nothing is selected, max 100 characters
      */
-    protected ?string $placeholder;
+    protected string $placeholder;
     /**
      * the minimum number of items that must be chosen; default 1, min 0, max 25
      */
@@ -36,18 +36,20 @@ class SelectMenuComponent extends Component
     {
         parent::__construct($data);
 
-        $this->custom_id = $data['custom_id'] ?? null;
+        $this->custom_id = $data['custom_id'];
         $this->disabled = $data['disabled'] ?? false;
-        $this->options = array_map(fn($option) => new SelectOption($option), $data['options'] ?? []);
-        $this->placeholder = $data['placeholder'] ?? null;
+        $this->placeholder = $data['placeholder'] ?? '';
         $this->min_values = $data['min_values'] ?? 1;
         $this->max_values = $data['max_values'] ?? 1;
+
+        $this->options = array_map(fn($option) => new SelectOption($option),
+            $data['options']);
     }
 
     /**
      * a developer-defined identifier for the component, max 100 characters
      */
-    public function getCustomId(): ?string
+    public function getCustomId(): string
     {
         return $this->custom_id;
     }

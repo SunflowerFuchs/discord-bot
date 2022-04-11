@@ -1,5 +1,7 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SunflowerFuchs\DiscordBot;
 
 use Exception;
@@ -13,6 +15,7 @@ use React\EventLoop\Factory;
 use React\EventLoop\StreamSelectLoop;
 use React\EventLoop\TimerInterface;
 use SunflowerFuchs\DiscordBot\Api\Objects\Message;
+use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
 use SunflowerFuchs\DiscordBot\Helpers\BotOptions;
 use SunflowerFuchs\DiscordBot\Helpers\EchoLogger;
 use SunflowerFuchs\DiscordBot\Helpers\EventManager;
@@ -44,7 +47,7 @@ class Bot implements LoggerAwareInterface
         'Content-Type' => 'multipart/form-data',
     ];
     protected int $sequence = 0;
-    protected int $userId = 0;
+    protected Snowflake $userId;
     protected string $sessionId = '';
     protected bool $keepRunning = false;
     protected bool $reconnect = false;
@@ -161,7 +164,7 @@ class Bot implements LoggerAwareInterface
         $this->eventManager->subscribe(EventManager::READY, function (array $message) {
             $this->logger->info("Gateway session initialized.");
             $this->sessionId = $message['d']['session_id'];
-            $this->userId = $message['d']['user']['id'];
+            $this->userId = new Snowflake($message['d']['user']['id']);
         });
 
         $this->eventManager->subscribe(EventManager::MESSAGE_CREATE, function (array $message) {
@@ -258,7 +261,7 @@ class Bot implements LoggerAwareInterface
         return $return;
     }
 
-    public function sendMessage(string $message, string $channelId): bool
+    public function sendMessage(string $message, Snowflake $channelId): bool
     {
         $res = $this->getApiClient()->post('channels/' . $channelId . '/messages', ([
             'multipart' => [

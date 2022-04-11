@@ -118,7 +118,7 @@ class Integration
      */
     public static function loadByGuildId(
         Client $apiClient,
-        string $guildId
+        Snowflake $guildId
     ): array {
         $res = $apiClient->get("guilds/${guildId}/integrations");
         if ($res->getStatusCode() === 200) {
@@ -139,8 +139,8 @@ class Integration
      */
     public static function deleteById(
         Client $apiClient,
-        string $guildId,
-        string $integrationId,
+        Snowflake $guildId,
+        Snowflake $integrationId,
         string $reason = ''
     ): bool {
         $options = [];

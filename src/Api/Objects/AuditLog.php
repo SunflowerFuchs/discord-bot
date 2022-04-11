@@ -46,7 +46,7 @@ class AuditLog
 
     public function __construct(array $data)
     {
-        $this->audit_log_entries = array_map(fn(array $entryData) => new aa($entryData),
+        $this->audit_log_entries = array_map(fn(array $entryData) => new AuditLogEntry($entryData),
             $data['audit_log_entries']);
         $this->guild_scheduled_events = array_map(fn(array $eventData) => new GuildScheduledEvent($eventData),
             $data['guild_scheduled_events']);
@@ -72,7 +72,7 @@ class AuditLog
      */
     public static function loadByGuildId(
         Client $apiClient,
-        string $guildId,
+        Snowflake $guildId,
         ?Snowflake $userId = null,
         ?int $actionType = null,
         ?Snowflake $before = null,

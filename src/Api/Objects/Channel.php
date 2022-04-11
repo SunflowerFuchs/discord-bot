@@ -163,7 +163,7 @@ class Channel
             $data['recipients'] ?? []);
     }
 
-    public static function loadById(Client $apiClient, string $channelId): ?self
+    public static function loadById(Client $apiClient, Snowflake $channelId): ?self
     {
         $res = $apiClient->get("channels/${channelId}");
         if ($res->getStatusCode() !== 200) {

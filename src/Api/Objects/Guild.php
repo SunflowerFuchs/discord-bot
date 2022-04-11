@@ -302,7 +302,7 @@ class Guild
             $data['guild_scheduled_events'] ?? []);
     }
 
-    public static function loadById(Client $apiClient, string $guildId, bool $withCounts = false): ?self
+    public static function loadById(Client $apiClient, Snowflake $guildId, bool $withCounts = false): ?self
     {
         $withCountsStr = $withCounts ? 'true' : 'false';
         $res = $apiClient->get("guilds/${guildId}?with_counts=${withCountsStr}");

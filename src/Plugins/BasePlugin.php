@@ -1,10 +1,13 @@
 <?php
 
+declare(strict_types=1);
+
 namespace SunflowerFuchs\DiscordBot\Plugins;
 
 use LogicException;
 use ReflectionClass;
 use RuntimeException;
+use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
 use SunflowerFuchs\DiscordBot\Bot;
 
 abstract class BasePlugin
@@ -55,7 +58,7 @@ abstract class BasePlugin
         throw new RuntimeException(sprintf('Could not create dataDir for plugin "%s"', $className));
     }
 
-    protected function sendMessage(string $message, string $channelId): bool
+    protected function sendMessage(string $message, Snowflake $channelId): bool
     {
         return $this->getBot()->sendMessage($message, $channelId);
     }

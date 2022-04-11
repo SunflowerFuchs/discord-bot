@@ -84,7 +84,7 @@ class Emoji
      * @return ?static
      * @throws GuzzleException
      */
-    public static function loadById(Client $apiClient, string $guildId, string $emojiId): ?self
+    public static function loadById(Client $apiClient, Snowflake $guildId, Snowflake $emojiId): ?self
     {
         $res = $apiClient->get("guilds/${guildId}/emojis/${emojiId}");
         if ($res->getStatusCode() === 200) {
@@ -106,7 +106,7 @@ class Emoji
      */
     public static function create(
         Client $apiClient,
-        string $guildId,
+        Snowflake $guildId,
         string $name,
         string $imageData,
         array $roles,
@@ -145,8 +145,8 @@ class Emoji
      */
     public static function modify(
         Client $apiClient,
-        string $guildId,
-        string $emojiId,
+        Snowflake $guildId,
+        Snowflake $emojiId,
         string $newName = null,
         array $roles = null,
         string $reason = ''
@@ -182,7 +182,7 @@ class Emoji
      * @return bool
      * @throws GuzzleException
      */
-    public static function delete(Client $apiClient, string $guildId, string $emojiId, string $reason = ''): bool
+    public static function delete(Client $apiClient, Snowflake $guildId, Snowflake $emojiId, string $reason = ''): bool
     {
         $options = [];
         if (!empty($reason)) {

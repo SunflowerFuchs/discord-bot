@@ -61,7 +61,7 @@ class GuildMember
         $this->permissions = $data['permissions'] ?? null;
     }
 
-    public static function loadById(Client $apiClient, string $guildId, string $userId): ?self
+    public static function loadById(Client $apiClient, Snowflake $guildId, Snowflake $userId): ?self
     {
         $ref = $apiClient->get("/guilds/${guildId}/members/${userId}");
         if ($ref->getStatusCode() !== 200) {

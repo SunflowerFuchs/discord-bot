@@ -7,6 +7,7 @@ namespace SunflowerFuchs\DiscordBot\Api\Objects;
 
 
 use GuzzleHttp\Client;
+use SunflowerFuchs\DiscordBot\Api\Constants\Headers;
 
 class GuildMember
 {
@@ -17,7 +18,11 @@ class GuildMember
     /**
      * this users guild nickname
      */
-    protected ?string $nick;
+    protected string $nick;
+    /**
+     * the member's guild avatar hash
+     */
+    protected ?string $avatar;
     /**
      * array of role object ids
      * @var Snowflake[]
@@ -46,29 +51,126 @@ class GuildMember
     /**
      * total permissions of the member in the channel, including overwrites, returned when in the interaction object
      */
-    protected ?string $permissions;
+    protected int $permissions;
+    /**
+     * when the user's timeout will expire and the user will be able to communicate in the guild again, zero if the user is not timed out
+     */
+    protected int $communication_disabled_until;
 
     public function __construct(array $data)
     {
         $this->user = !empty($data['user']) ? new User($data['user']) : null;
-        $this->nick = $data['nick'] ?? null;
+        $this->nick = $data['nick'] ?? '';
+        $this->avatar = $data['avatar'] ?? null;
         $this->joined_at = strtotime($data['joined_at']);
         $this->premium_since = !empty($data['premium_since']) ? strtotime($data['premium_since']) : null;
         $this->deaf = $data['deaf'] ?? false;
         $this->mute = $data['mute'] ?? false;
         $this->pending = $data['pending'] ?? false;
         $this->roles = array_map(fn(string $snowflake) => new Snowflake($snowflake), $data['roles'] ?? []);
-        $this->permissions = $data['permissions'] ?? null;
+        $this->permissions = $data['permissions'] ?? 0;
+        $this->communication_disabled_until = !empty($data['communication_disabled_until']) ? strtotime($data['communication_disabled_until']) : 0;
+
+        if (!$this->communication_disabled_until < time()) {
+            $this->communication_disabled_until = 0;
+        }
     }
 
     public static function loadById(Client $apiClient, Snowflake $guildId, Snowflake $userId): ?self
     {
         $ref = $apiClient->get("/guilds/${guildId}/members/${userId}");
-        if ($ref->getStatusCode() !== 200) {
-            return null;
+        if ($ref->getStatusCode() === 200) {
+            return new static(json_decode($ref->getBody()->getContents(), true));
         }
 
-        return new static(json_decode($ref->getBody()->getContents(), true));
+        return null;
+    }
+
+    public static function listForGuild(
+        Client $apiClient,
+        Snowflake $guildId,
+        int $limit = 1,
+        ?Snowflake $after = null
+    ): array {
+        $params = [
+            'limit' => $limit
+        ];
+        if (!empty($after)) {
+            $params['after'] = "$after";
+        }
+        $options = ['json' => $params];
+
+        $ref = $apiClient->get("/guilds/${guildId}/members", $options);
+        if ($ref->getStatusCode() === 200) {
+            return array_map(fn(array $memberData) => new static($memberData),
+                json_decode($ref->getBody()->getContents(), true));
+        }
+
+        return [];
+    }
+
+    public static function search(
+        Client $apiClient,
+        Snowflake $guildId,
+        string $query,
+        int $limit = 1
+    ): array {
+        $params = [
+            'query' => $query,
+            'limit' => $limit
+        ];
+        $options = ['json' => $params];
+
+        $ref = $apiClient->get("/guilds/${guildId}/members/search", $options);
+        if ($ref->getStatusCode() === 200) {
+            return array_map(fn(array $memberData) => new static($memberData),
+                json_decode($ref->getBody()->getContents(), true));
+        }
+
+        return [];
+    }
+
+    public static function kick(Client $apiClient, Snowflake $guildId, Snowflake $userId, string $reason = ''): bool
+    {
+        $options = [];
+        if (!empty($reason)) {
+            $options['headers'] = [Headers::AUDIT_LOG_REASON => $reason];
+        }
+
+        $res = $apiClient->delete("guilds/${guildId}/members/${userId}", $options);
+        return $res->getStatusCode() === 204;
+    }
+
+    public static function addRole(
+        Client $apiClient,
+        Snowflake $guildId,
+        Snowflake $userId,
+        Snowflake $roleId,
+        string $reason = ''
+    ): bool {
+        $options = [];
+        if (!empty($reason)) {
+            $options['headers'] = [Headers::AUDIT_LOG_REASON => $reason];
+        }
+
+        $res = $apiClient->put("guilds/${guildId}/members/${userId}/roles/${roleId}", $options);
+        return $res->getStatusCode() === 204;
+    }
+
+    public static function removeRole(
+        Client $apiClient,
+        Snowflake $guildId,
+        Snowflake $userId,
+        Snowflake $roleId,
+        string $reason = ''
+    ): bool {
+        $options = [];
+        if (!empty($reason)) {
+            $options['headers'] = [Headers::AUDIT_LOG_REASON => $reason];
+        }
+
+        $res = $apiClient->delete("guilds/${guildId}/members/${userId}/roles/${roleId}", $options);
+        return $res->getStatusCode() === 204;
     }
 
     /**
@@ -84,11 +186,21 @@ class GuildMember
     /**
      * Returns the users nickname for the server
      *
-     * @return ?string
+     * @return string
      */
-    public function getNick(): ?string
+    public function getNick(): string
     {
         return $this->nick;
+    }
+
+    /**
+     * Returns the users avatar hash for the server
+     *
+     * @return ?string
+     */
+    public function getAvatarHash(): ?string
+    {
+        return $this->avatar;
     }
 
     /**
@@ -154,10 +266,28 @@ class GuildMember
     /**
      * total permissions of the member in the channel, including overwrites, returned when in the interaction object
      */
-    public function getPermissions(): string
+    public function getPermissions(): int
     {
         return $this->permissions;
     }
 
+    /**
+     * when the user's timeout will expire and the user will be able to communicate in the guild again, zero if the user is not timed out
+     *
+     * @return int
+     */
+    public function getCommunicationDisabledUntil(): int
+    {
+        return $this->communication_disabled_until;
+    }
 
+    /**
+     * whether the user is currently timed out
+     *
+     * @return bool
+     */
+    public function isTimedOut(): bool
+    {
+        return $this->getCommunicationDisabledUntil() !== 0;
+    }
 }

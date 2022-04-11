@@ -511,6 +511,7 @@ class Bot implements LoggerAwareInterface
         return $apiClient ?? ($apiClient = new Client([
                 'base_uri' => 'https://discord.com/api/',
                 'headers' => $this->header,
+                'http_errors' => false,
             ]));
     }
 }

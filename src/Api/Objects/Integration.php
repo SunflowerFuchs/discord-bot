@@ -112,7 +112,7 @@ class Integration
 
     /**
      * @param Client $apiClient
-     * @param string $guildId
+     * @param Snowflake $guildId
      * @return static[]
      * @throws GuzzleException
      */
@@ -131,10 +131,10 @@ class Integration
 
     /**
      * @param Client $apiClient
-     * @param string $guildId
-     * @param string $integrationId
+     * @param Snowflake $guildId
+     * @param Snowflake $integrationId
      * @param string $reason
-     * @return static[]
+     * @return bool
      * @throws GuzzleException
      */
     public static function deleteById(

@@ -12,7 +12,7 @@ class AuditLogEntry
     protected ?string $target_id;
     /**
      * changes made to the target_id
-     * @var AuditLogChange
+     * @var AuditLogChange[]
      */
     protected array $changes;
     /**
@@ -61,9 +61,9 @@ class AuditLogEntry
 
     /**
      * changes made to the target_id
-     * @return AuditLogChange
+     * @return AuditLogChange[]
      */
-    public function getChanges()
+    public function getChanges(): array
     {
         return $this->changes;
     }

@@ -62,7 +62,7 @@ class AuditLog
 
     /**
      * @param Client $apiClient
-     * @param string $guildId
+     * @param Snowflake $guildId
      * @param ?Snowflake $userId filter the log for actions made by a specific user
      * @param ?int $actionType the type of {@see AuditLogEventType}
      * @param ?Snowflake $before filter the log before a certain entry id

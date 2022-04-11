@@ -79,8 +79,8 @@ class Emoji
 
     /**
      * @param Client $apiClient
-     * @param string $guildId
-     * @param string $emojiId
+     * @param Snowflake $guildId
+     * @param Snowflake $emojiId
      * @return ?static
      * @throws GuzzleException
      */
@@ -96,7 +96,7 @@ class Emoji
 
     /**
      * @param Client $apiClient
-     * @param string $guildId
+     * @param Snowflake $guildId
      * @param string $name
      * @param string $imageData a data: URI for the image
      * @param Snowflake[] $roles
@@ -109,8 +109,8 @@ class Emoji
         Snowflake $guildId,
         string $name,
         string $imageData,
-        array $roles,
-        string $reason
+        array $roles = [],
+        string $reason = ''
     ): ?self {
         $params = [
             'name' => $name,
@@ -135,8 +135,8 @@ class Emoji
 
     /**
      * @param Client $apiClient
-     * @param string $guildId
-     * @param string $emojiId
+     * @param Snowflake $guildId
+     * @param Snowflake $emojiId
      * @param ?string $newName
      * @param ?Snowflake[] $roles
      * @param string $reason
@@ -176,8 +176,8 @@ class Emoji
 
     /**
      * @param Client $apiClient
-     * @param string $guildId
-     * @param string $emojiId
+     * @param Snowflake $guildId
+     * @param Snowflake $emojiId
      * @param string $reason
      * @return bool
      * @throws GuzzleException

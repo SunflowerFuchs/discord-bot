@@ -92,7 +92,7 @@ class Role
     /**
      * Returns the permissions for this role
      *
-     * @return string
+     * @return int
      * @see Permissions
      */
     public function getPermissions(): int

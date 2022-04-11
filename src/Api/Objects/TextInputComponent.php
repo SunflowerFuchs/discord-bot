@@ -46,6 +46,8 @@ class TextInputComponent extends Component
 
     public function __construct(array $data)
     {
+        parent::__construct($data);
+
         $this->custom_id = $data['custom_id'];
         $this->style = $data['style'];
         $this->label = $data['label'];

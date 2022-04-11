@@ -194,7 +194,7 @@ class Bot implements LoggerAwareInterface
                         $this->stop();
                         exit;
                     case SIGHUP:
-                        $this->reconnectGateway(true);
+                        $this->reconnectGateway();
                         break;
                 }
             };

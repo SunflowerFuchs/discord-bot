@@ -6,6 +6,7 @@ namespace SunflowerFuchs\DiscordBot\Api\Objects;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use SunflowerFuchs\DiscordBot\Api\Constants\Headers;
 use SunflowerFuchs\DiscordBot\Api\Constants\IntegrationExpireBehaviour;
 
 class Integration
@@ -145,7 +146,7 @@ class Integration
     ): bool {
         $options = [];
         if (!empty($reason)) {
-            $options['headers'] = ['X-Audit-Log-Reason' => $reason];
+            $options['headers'] = [Headers::AUDIT_LOG_REASON => $reason];
         }
 
         $res = $apiClient->delete("guilds/${guildId}/integrations/${integrationId}", $options);

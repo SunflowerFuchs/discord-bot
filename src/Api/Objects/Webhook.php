@@ -4,6 +4,7 @@ namespace SunflowerFuchs\DiscordBot\Api\Objects;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use SunflowerFuchs\DiscordBot\Api\Constants\Headers;
 
 class Webhook
 {
@@ -98,7 +99,7 @@ class Webhook
             'json' => $params
         ];
         if (!empty($reason)) {
-            $options['headers'] = ['X-Audit-Log-Reason' => $reason];
+            $options['headers'] = [Headers::AUDIT_LOG_REASON => $reason];
         }
 
         $res = $apiClient->post("channels/${channelId}/webhooks", $options);
@@ -142,7 +143,7 @@ class Webhook
             'json' => $params
         ];
         if (!empty($reason)) {
-            $options['headers'] = ['X-Audit-Log-Reason' => $reason];
+            $options['headers'] = [Headers::AUDIT_LOG_REASON => $reason];
         }
 
         $res = $apiClient->patch("webhooks/${webhookId}", $options);
@@ -157,7 +158,7 @@ class Webhook
     {
         $options = [];
         if (!empty($reason)) {
-            $options['headers'] = ['X-Audit-Log-Reason' => $reason];
+            $options['headers'] = [Headers::AUDIT_LOG_REASON => $reason];
         }
 
         $res = $apiClient->delete("webhooks/${webhookId}", $options);

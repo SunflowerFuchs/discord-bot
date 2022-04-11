@@ -8,6 +8,7 @@ namespace SunflowerFuchs\DiscordBot\Api\Objects;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use SunflowerFuchs\DiscordBot\Api\Constants\Headers;
 use SunflowerFuchs\DiscordBot\Bot;
 
 class Emoji
@@ -122,7 +123,7 @@ class Emoji
             'json' => $params
         ];
         if (!empty($reason)) {
-            $options['headers'] = ['X-Audit-Log-Reason' => $reason];
+            $options['headers'] = [Headers::AUDIT_LOG_REASON => $reason];
         }
 
         $res = $apiClient->post("guilds/${guildId}/emojis", $options);
@@ -163,7 +164,7 @@ class Emoji
             'json' => $params
         ];
         if (!empty($reason)) {
-            $options['headers'] = ['X-Audit-Log-Reason' => $reason];
+            $options['headers'] = [Headers::AUDIT_LOG_REASON => $reason];
         }
 
         $res = $apiClient->patch("guilds/${guildId}/emojis/${emojiId}", $options);
@@ -186,7 +187,7 @@ class Emoji
     {
         $options = [];
         if (!empty($reason)) {
-            $options['headers'] = ['X-Audit-Log-Reason' => $reason];
+            $options['headers'] = [Headers::AUDIT_LOG_REASON => $reason];
         }
 
         $res = $apiClient->delete("guilds/${guildId}/emojis/${emojiId}", $options);

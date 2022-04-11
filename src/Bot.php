@@ -517,4 +517,9 @@ class Bot implements LoggerAwareInterface
                 'http_errors' => false,
             ]));
     }
+
+    public function getUserId(): Snowflake
+    {
+        return $this->userId;
+    }
 }

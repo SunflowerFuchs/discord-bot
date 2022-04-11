@@ -14,6 +14,7 @@ use Ratchet\RFC6455\Messaging\Message as RatchetMessage;
 use React\EventLoop\Factory;
 use React\EventLoop\StreamSelectLoop;
 use React\EventLoop\TimerInterface;
+use SunflowerFuchs\DiscordBot\Api\Objects\AllowedMentions;
 use SunflowerFuchs\DiscordBot\Api\Objects\Message;
 use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
 use SunflowerFuchs\DiscordBot\Helpers\BotOptions;
@@ -261,18 +262,18 @@ class Bot implements LoggerAwareInterface
         return $return;
     }
 
-    public function sendMessage(string $message, Snowflake $channelId): bool
+    public function sendMessage(string $message, Snowflake $channelId, AllowedMentions $allowedMentions = null): bool
     {
+        // TODO: Replace with Message::create
         $res = $this->getApiClient()->post('channels/' . $channelId . '/messages', ([
             'multipart' => [
                 [
-                    'name' => 'content',
-                    'contents' => $message,
-                ],
-                [
-                    'name' => 'file',
-                    'contents' => 'content',
-                ],
+                    'name' => 'payload_json',
+                    'contents' => json_encode([
+                        'content' => $message,
+                        'allowed_mentions' => ($allowedMentions ?? new AllowedMentions())->toArray()
+                    ])
+                ]
             ],
         ]));
 

@@ -6,6 +6,7 @@ declare(strict_types=1);
 namespace SunflowerFuchs\DiscordBot\Plugins;
 
 
+use SunflowerFuchs\DiscordBot\Api\Objects\AllowedMentions;
 use SunflowerFuchs\DiscordBot\Api\Objects\Message;
 use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
 use SunflowerFuchs\DiscordBot\Api\Objects\User;
@@ -42,6 +43,8 @@ class PingPlugin extends BasePlugin
         $userId = $author->getId();
         $response = "Hey <@${userId}>. I'm up, running, and having fun!";
         $response .= PHP_EOL . "We're currently vibing in <#${channelId}>.";
-        return $this->sendMessage($response, $channelId);
+        $allowedMentions = new AllowedMentions();
+        $allowedMentions->allowUser($userId);
+        return $this->sendMessage($response, $channelId, $allowedMentions);
     }
 }

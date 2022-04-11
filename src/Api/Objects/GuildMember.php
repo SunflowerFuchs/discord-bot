@@ -141,6 +141,25 @@ class GuildMember
         return $res->getStatusCode() === 204;
     }
 
+    public static function ban(
+        Client $apiClient,
+        Snowflake $guildId,
+        Snowflake $userId,
+        int $deleteDays = 0,
+        string $reason = ''
+    ): bool {
+        return Ban::create($apiClient, $guildId, $userId, $deleteDays, $reason);
+    }
+
+    public static function unban(
+        Client $apiClient,
+        Snowflake $guildId,
+        Snowflake $userId,
+        string $reason = ''
+    ): bool {
+        return Ban::delete($apiClient, $guildId, $userId, $reason);
+    }
+
     public static function addRole(
         Client $apiClient,
         Snowflake $guildId,

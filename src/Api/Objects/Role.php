@@ -13,7 +13,7 @@ class Role
     protected int $color;
     protected bool $hoist;
     protected int $position;
-    protected string $permissions;
+    protected int $permissions;
     protected bool $managed;
     protected bool $mentionable;
     protected RoleTags $tags;
@@ -25,7 +25,7 @@ class Role
         $this->color = $data['color'];
         $this->hoist = $data['hoist'];
         $this->position = $data['position'];
-        $this->permissions = $data['permissions'];
+        $this->permissions = (int)$data['permissions'];
         $this->managed = $data['managed'];
         $this->mentionable = $data['mentionable'];
         $this->tags = new RoleTags($data['tags'] ?? []);
@@ -95,7 +95,7 @@ class Role
      * @return string
      * @see Permissions
      */
-    public function getPermissions(): string
+    public function getPermissions(): int
     {
         return $this->permissions;
     }

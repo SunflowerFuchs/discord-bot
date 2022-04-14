@@ -103,7 +103,7 @@ class Webhook
         }
 
         $res = $apiClient->post("channels/${channelId}/webhooks", $options);
-        if ($res->getStatusCode() === 200) {
+        if ($res->getStatusCode() === 201) {
             return new static(json_decode($res->getBody()->getContents(), true));
         }
 

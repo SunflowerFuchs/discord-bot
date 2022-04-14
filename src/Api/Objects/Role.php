@@ -116,7 +116,7 @@ class Role
         }
 
         $res = $apiClient->post("guilds/${guildId}/roles", $options);
-        if ($res->getStatusCode() === 200) {
+        if ($res->getStatusCode() === 201) {
             return new static(json_decode($res->getBody()->getContents(), true));
         }
 

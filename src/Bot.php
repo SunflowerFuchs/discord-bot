@@ -251,6 +251,11 @@ class Bot implements LoggerAwareInterface
             return false;
         }
 
+        if ($messageObject->getAuthor()->isBot()) {
+            $this->logger->debug("Command ${command} received by a bot.");
+            return false;
+        }
+
         $return = call_user_func($this->commands[$command], $messageObject);
         if (!is_bool($return) && !is_null($return)) {
             $this->logger->warning("Command ${command} returned invalid (non-bool) return value");

@@ -5,6 +5,9 @@ declare(strict_types=1);
 
 namespace SunflowerFuchs\DiscordBot\Api\Objects;
 
+use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
+use GuzzleHttp\Psr7\Utils;
 use SunflowerFuchs\DiscordBot\Api\Constants\MessageFlag;
 use SunflowerFuchs\DiscordBot\Api\Constants\MessageType;
 use SunflowerFuchs\DiscordBot\Helpers\ComponentFactory;
@@ -180,6 +183,94 @@ class Message
             $data['embeds'] ?? []);
         $this->components = array_map(fn($componentData) => ComponentFactory::factory($componentData),
             $data['components'] ?? []);
+    }
+
+    /**
+     * @param Client $apiClient
+     * @param Snowflake $channelId
+     * @param string $content
+     * @param bool $tts
+     * @param Embed[] $embeds
+     * @param ?AllowedMentions $allowedMentions
+     * @param ?Snowflake $replyToMessage
+     * @param Component[] $components
+     * @param Snowflake[] $stickerIds
+     * @param string[] $files Array of file paths
+     * @param Attachment[] $attachments
+     * @param bool $suppressEmbeds
+     * @return bool
+     * @throws GuzzleException
+     */
+    public static function create(
+        Client $apiClient,
+        Snowflake $channelId,
+        string $content,
+        AllowedMentions $allowedMentions = null,
+        bool $tts = false,
+        array $embeds = [],
+        Snowflake $replyToMessage = null,
+        array $components = [],
+        array $stickerIds = [],
+        array $files = [],
+        array $attachments = [],
+        bool $suppressEmbeds = false
+    ): bool {
+        $jsonData = [];
+        // Main content
+        if (!empty($content)) {
+            $jsonData['content'] = $content;
+        }
+        // TODO: $embed->toArray();
+//        if (!empty($embeds)) {
+//             $jsonData['embeds'] = array_map(fn(Embed $embed) => $embed->toArray(), $embeds);
+//        }
+        if (!empty($stickerIds)) {
+            $jsonData['sticker_ids'] = array_map(fn(Snowflake $stickerId) => (string)$stickerId, $stickerIds);
+        }
+        $fileData = [];
+        if (!empty($files)) {
+            foreach (array_values($files) as $key => $filePath) {
+                $fileData[] = [
+                    'name' => "files[${key}]",
+                    'contents' => Utils::tryFopen($filePath, 'r'),
+                    'filename' => basename($filePath)
+                ];
+            }
+        }
+
+        // Additional data
+        $jsonData['allowedMentions'] = ($allowedMentions ?? new AllowedMentions())->toArray();
+        if (!empty($components)) {
+            $jsonData['components'] = array_map(fn(Component $component) => $component->toArray(), $components);
+        }
+        // TODO: $attachment->toArray();
+//        if (!empty($attachments)) {
+//             $jsonData['attachments'] = array_map(fn(Attachment $attachment) => $attachment->toArray(), $attachments);
+//        }
+        if ($tts) {
+            $jsonData['tts'] = true;
+        }
+        if ($suppressEmbeds) {
+            $jsonData['flags'] = MessageFlag::SUPPRESS_EMBEDS;
+        }
+        if (!empty($replyToMessage)) {
+            $jsonData['message_reference'] = new MessageReference(['message_id' => $replyToMessage]);
+        }
+
+        $options = [
+            'multipart' => [
+                [
+                    'name' => 'payload_json',
+                    'contents' => json_encode(
+                        $jsonData
+                    )
+                ],
+                ...$fileData
+            ],
+        ];
+
+        $res = $apiClient->post("channels/${channelId}/messages", $options);
+        return $res->getStatusCode() === 200;
     }
 
     /**
@@ -461,7 +552,6 @@ class Message
     }
 
     /**
-     * @TODO: implement Reactions
      * @return Reaction[]
      */
     public function getReactions(): ?array
@@ -470,7 +560,6 @@ class Message
     }
 
     /**
-     * @TODO: implement Stickers
      * @return Sticker[]
      */
     public function getStickerItems(): ?array

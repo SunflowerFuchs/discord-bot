@@ -14,14 +14,17 @@ class ActionRowComponent extends Component
      * a list of child components
      * @var Component[]
      */
-    protected array $components;
+    protected array $components = [];
 
-    public function __construct(array $data)
+    public static function fromData(array $data): self
     {
-        parent::__construct($data);
+        $that = parent::fromData($data);
 
-        $this->components = array_map(fn($component) => ComponentFactory::factory($component),
-            $data['components'] ?? []);
+        foreach ($data['components'] ?? [] as $componentData) {
+            $that->addComponent(ComponentFactory::factory($componentData));
+        }
+
+        return $that;
     }
 
     /**
@@ -30,5 +33,18 @@ class ActionRowComponent extends Component
     public function getComponents(): array
     {
         return $this->components;
+    }
+
+    public function addComponent(Component $component): self
+    {
+        $this->components[] = $component;
+        return $this;
+    }
+
+    public function toArray(): array
+    {
+        $array = parent::toArray();
+        $array['components'] = array_map(fn(Component $component) => $component->toArray(), $this->components);
+        return $array;
     }
 }

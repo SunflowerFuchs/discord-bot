@@ -9,51 +9,41 @@ class SelectMenuComponent extends Component
     public const TYPE = 3;
 
     /**
-     * a developer-defined identifier for the component, max 100 characters
-     */
-    protected ?string $custom_id;
-    /**
      * whether the component is disabled, default false
      */
-    protected bool $disabled;
+    protected bool $disabled = false;
     /**
      * the choices in the select, max 25
      * @var SelectOption[]
      */
-    protected array $options;
+    protected array $options = [];
     /**
      * custom placeholder text if nothing is selected, max 100 characters
      */
-    protected string $placeholder;
+    protected string $placeholder = '';
     /**
      * the minimum number of items that must be chosen; default 1, min 0, max 25
      */
-    protected int $min_values;
+    protected int $min_values = 1;
     /**
      * the maximum number of items that can be chosen; default 1, max 25
      */
-    protected int $max_values;
+    protected int $max_values = 1;
 
-    public function __construct(array $data)
+    public static function fromData(array $data): self
     {
-        parent::__construct($data);
+        $that = parent::fromData($data);
 
-        $this->custom_id = $data['custom_id'];
-        $this->disabled = $data['disabled'] ?? false;
-        $this->placeholder = $data['placeholder'] ?? '';
-        $this->min_values = $data['min_values'] ?? 1;
-        $this->max_values = $data['max_values'] ?? 1;
+        $that->setDisabled($data['disabled'] ?? false);
+        $that->setPlaceholder($data['placeholder'] ?? '');
+        $that->setMinValues($data['min_values'] ?? 1);
+        $that->setMaxValues($data['max_values'] ?? 1);
 
-        $this->options = array_map(fn($option) => new SelectOption($option),
-            $data['options']);
-    }
+        foreach ($data['options'] as $optionData) {
+            $that->addOption(SelectOption::fromData($optionData));
+        }
 
-    /**
-     * a developer-defined identifier for the component, max 100 characters
-     */
-    public function getCustomId(): string
-    {
-        return $this->custom_id;
+        return $that;
     }
 
     /**
@@ -62,6 +52,12 @@ class SelectMenuComponent extends Component
     public function isDisabled(): bool
     {
         return $this->disabled;
+    }
+
+    public function setDisabled(bool $disabled): self
+    {
+        $this->disabled = $disabled;
+        return $this;
     }
 
     /**
@@ -73,12 +69,24 @@ class SelectMenuComponent extends Component
         return $this->options;
     }
 
+    public function addOption(SelectOption $option): self
+    {
+        $this->options[] = $option;
+        return $this;
+    }
+
     /**
      * custom placeholder text if nothing is selected, max 100 characters
      */
     public function getPlaceholder(): ?string
     {
         return $this->placeholder;
+    }
+
+    public function setPlaceholder(string $placeholder): self
+    {
+        $this->placeholder = $placeholder;
+        return $this;
     }
 
     /**
@@ -89,11 +97,39 @@ class SelectMenuComponent extends Component
         return $this->min_values;
     }
 
+    public function setMinValues(int $minValues): self
+    {
+        $this->min_values = $minValues;
+        return $this;
+    }
+
     /**
      * the maximum number of items that can be chosen; default 1, max 25
      */
     public function getMaxValues(): int
     {
         return $this->max_values;
+    }
+
+    public function setMaxValues(int $maxValues): self
+    {
+        $this->max_values = $maxValues;
+        return $this;
+    }
+
+    public function toArray(): array
+    {
+        $array = parent::toArray();
+        $array['disabled'] = $this->isDisabled();
+        $array['placeholder'] = $this->getPlaceholder();
+        $array['min_values'] = $this->getMinValues();
+        $array['max_values'] = $this->getMaxValues();
+
+        $array['options'] = [];
+        foreach ($this->options as $option) {
+            $array['options'][] = $option->toArray();
+        }
+
+        return $array;
     }
 }

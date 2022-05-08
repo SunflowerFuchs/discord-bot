@@ -22,6 +22,6 @@ class ComponentFactory
     public static function factory(array $data): Component
     {
         $class = static::COMPONENT_TYPES[$data['type']] ?? static::COMPONENT_TYPES[0];
-        return new $class($data);
+        return $class::fromData($data);
     }
 }

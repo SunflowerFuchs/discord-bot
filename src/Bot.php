@@ -264,25 +264,11 @@ class Bot implements LoggerAwareInterface
 
     public function sendMessage(string $message, Snowflake $channelId, AllowedMentions $allowedMentions = null): bool
     {
-        // TODO: Replace with Message::create
-        $res = $this->getApiClient()->post('channels/' . $channelId . '/messages', ([
-            'multipart' => [
-                [
-                    'name' => 'payload_json',
-                    'contents' => json_encode([
-                        'content' => $message,
-                        'allowed_mentions' => ($allowedMentions ?? new AllowedMentions())->toArray()
-                    ])
-                ]
-            ],
-        ]));
-
-        if ($res->getStatusCode() != 200) {
+        $success = Message::create($this->getApiClient(), $channelId, $message, $allowedMentions);
+        if (!$success) {
             $this->logger->warning("Sending message to channel ${channelId} failed");
-            return false;
         }
-
-        return true;
+        return $success;
     }
 
     protected function invokeGateway(): void

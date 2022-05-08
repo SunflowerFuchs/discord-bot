@@ -11,60 +11,48 @@ class TextInputComponent extends Component
     public const TYPE = 4;
 
     /**
-     * a developer-defined identifier for the input, max 100 characters
-     */
-    protected string $custom_id;
-    /**
      * the Text Input Style
      * @see TextInputStyle
      */
-    protected int $style;
+    protected int $style = TextInputStyle::SHORT;
     /**
      * the label for this component, max 45 characters
      */
-    protected string $label;
+    protected string $label = '';
     /**
      * the minimum input length for a text input, min 0, max 4000
      */
-    protected int $min_length;
+    protected int $min_length = 0;
     /**
      * the maximum input length for a text input, min 1, max 4000
      */
-    protected int $max_length;
+    protected int $max_length = 4000;
     /**
      * whether this component is required to be filled, default true
      */
-    protected bool $required;
+    protected bool $required = true;
     /**
      * a pre-filled value for this component, max 4000 characters
      */
-    protected string $value;
+    protected string $value = '';
     /**
      * custom placeholder text if the input is empty, max 100 characters
      */
-    protected string $placeholder;
+    protected string $placeholder = '';
 
-    public function __construct(array $data)
+    public static function fromData(array $data): self
     {
-        parent::__construct($data);
+        $that = parent::fromData($data);
 
-        $this->custom_id = $data['custom_id'];
-        $this->style = $data['style'];
-        $this->label = $data['label'];
-        $this->min_length = $data['min_length'] ?? 0;
-        $this->max_length = $data['max_length'] ?? 4000;
-        $this->required = $data['required'] ?? true;
-        $this->value = $data['value'] ?? '';
-        $this->placeholder = $data['placeholder'] ?? '';
-    }
+        $that->setStyle($data['style']);
+        $that->setLabel($data['label']);
+        $that->setMinLength($data['min_length'] ?? 0);
+        $that->setMaxLength($data['max_length'] ?? 4000);
+        $that->setRequired($data['required'] ?? true);
+        $that->setValue($data['value'] ?? '');
+        $that->setPlaceholder($data['placeholder'] ?? '');
 
-    /**
-     * a developer-defined identifier for the input, max 100 characters
-     * @return string
-     */
-    public function getCustomId(): string
-    {
-        return $this->custom_id;
+        return $that;
     }
 
     /**
@@ -76,6 +64,12 @@ class TextInputComponent extends Component
         return $this->style;
     }
 
+    public function setStyle(int $style): self
+    {
+        $this->style = $style;
+        return $this;
+    }
+
     /**
      * the label for this component, max 45 characters
      * @return string
@@ -83,6 +77,12 @@ class TextInputComponent extends Component
     public function getLabel(): string
     {
         return $this->label;
+    }
+
+    public function setLabel(string $label): self
+    {
+        $this->label = $label;
+        return $this;
     }
 
     /**
@@ -94,6 +94,12 @@ class TextInputComponent extends Component
         return $this->min_length;
     }
 
+    public function setMinLength(int $minLength): self
+    {
+        $this->min_length = $minLength;
+        return $this;
+    }
+
     /**
      * the maximum input length for a text input, min 1, max 4000
      * @return int
@@ -101,6 +107,12 @@ class TextInputComponent extends Component
     public function getMaxLength(): int
     {
         return $this->max_length;
+    }
+
+    public function setMaxLength(int $maxLength): self
+    {
+        $this->max_length = $maxLength;
+        return $this;
     }
 
     /**
@@ -112,6 +124,12 @@ class TextInputComponent extends Component
         return $this->required;
     }
 
+    public function setRequired(bool $required): self
+    {
+        $this->required = $required;
+        return $this;
+    }
+
     /**
      * a pre-filled value for this component, max 4000 characters
      * @return string
@@ -119,6 +137,12 @@ class TextInputComponent extends Component
     public function getValue(): string
     {
         return $this->value;
+    }
+
+    public function setValue(string $value): self
+    {
+        $this->value = $value;
+        return $this;
     }
 
     /**
@@ -130,5 +154,22 @@ class TextInputComponent extends Component
         return $this->placeholder;
     }
 
+    public function setPlaceholder(string $placeholder): self
+    {
+        $this->placeholder = $placeholder;
+        return $this;
+    }
 
+    public function toArray(): array
+    {
+        $array = parent::toArray();
+        $array ['style'] = $this->getStyle();
+        $array ['label'] = $this->getLabel();
+        $array ['min_length'] = $this->getMinLength();
+        $array ['max_length'] = $this->getMaxLength();
+        $array ['required'] = $this->isRequired();
+        $array ['value'] = $this->getValue();
+        $array ['placeholder'] = $this->getPlaceholder();
+        return $array;
+    }
 }

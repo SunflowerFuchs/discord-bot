@@ -305,4 +305,10 @@ class Emoji
         $format = $this->isAnimated() ? 'gif' : 'png';
         return "${baseUrl}emojis/${id}.${format}?size=${size}";
     }
+
+    public function toArray(): array
+    {
+        // TODO
+        return [];
+    }
 }

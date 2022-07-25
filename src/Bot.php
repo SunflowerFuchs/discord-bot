@@ -141,8 +141,10 @@ class Bot implements LoggerAwareInterface
         }
 
         // Filter out the token before logging, we don't want to print that
-        $this->logger->debug("Options set",
-            ['options' => array_replace($this->options, ['token' => '*****' . substr($this->options['token'], -4)])]);
+        $this->logger->debug(
+            "Options set",
+            ['options' => array_replace($this->options, ['token' => '*****' . substr($this->options['token'], -4)])]
+        );
     }
 
     public function getPrefix(): string
@@ -215,8 +217,10 @@ class Bot implements LoggerAwareInterface
     {
         $class = get_class($plugin);
         if (isset($this->plugins[$class])) {
-            $this->logger->warning("Plugin ${class} is already registered. Skipping...",
-                ['Loaded Plugins' => array_keys($this->plugins)]);
+            $this->logger->warning(
+                "Plugin ${class} is already registered. Skipping...",
+                ['Loaded Plugins' => array_keys($this->plugins)]
+            );
             return false;
         }
 
@@ -234,8 +238,10 @@ class Bot implements LoggerAwareInterface
     public function registerCommand(string $command, callable $handler): bool
     {
         if (isset($this->commands[$command])) {
-            $this->logger->warning("Command '${command}' already registered. Skipping...",
-                ['Registered Commands' => array_keys($this->commands)]);
+            $this->logger->warning(
+                "Command '${command}' already registered. Skipping...",
+                ['Registered Commands' => array_keys($this->commands)]
+            );
             return false;
         }
 
@@ -358,7 +364,7 @@ class Bot implements LoggerAwareInterface
                 $this->reconnectGateway(boolval($message['d'] ?? true));
                 break;
             case 0: // "0 Dispatch"-Payload
-                $this->eventManager->publish($message['t'], $message);
+                $this->eventManager->publish($message['t'], $message, $this);
                 break;
             default:
                 $this->logger->notice("Unknown Opcode ${message['op']} received.");

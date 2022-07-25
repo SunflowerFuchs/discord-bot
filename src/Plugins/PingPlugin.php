@@ -10,12 +10,23 @@ use SunflowerFuchs\DiscordBot\Api\Objects\AllowedMentions;
 use SunflowerFuchs\DiscordBot\Api\Objects\Message;
 use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
 use SunflowerFuchs\DiscordBot\Api\Objects\User;
+use SunflowerFuchs\DiscordBot\Helpers\EventManager;
 
 class PingPlugin extends BasePlugin
 {
     public function init()
     {
         $this->getBot()->registerCommand('ping', fn($msg) => $this->ping($msg));
+
+        // Enable pinging via DM
+        // I should probably create a $bot->registerDmCommand function for this
+        $this->getBot()->subscribeToEvent(EventManager::DM_MESSAGE_CREATE, function (array $msg) {
+            $message = new Message($msg['d']);
+            $prefix = $this->getBot()->getPrefix();
+            if ($message->isCommand($prefix) && $message->getCommand($prefix)) {
+                $this->ping($message);
+            }
+        });
     }
 
     protected function ping(Message $msg): bool

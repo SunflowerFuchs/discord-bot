@@ -4,6 +4,11 @@ declare(strict_types=1);
 
 namespace SunflowerFuchs\DiscordBot\Helpers;
 
+use SunflowerFuchs\DiscordBot\Api\Constants\ChannelType;
+use SunflowerFuchs\DiscordBot\Api\Objects\Channel;
+use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
+use SunflowerFuchs\DiscordBot\Bot;
+
 class EventManager
 {
     /** @var string defines the heartbeat interval */
@@ -309,15 +314,14 @@ class EventManager
      * @param string $event The event to publish to, e.g. {@see EventManager::MESSAGE_CREATE}
      * @param array $message
      */
-    public function publish(string $event, array $message)
+    public function publish(string $event, array $message, Bot $bot)
     {
-        foreach ($this->subscribers[$event] ?? [] as $handler) {
-            call_user_func($handler, $message);
+        if (isset(self::EVENT_ALIASES[$event]) && $this->isDmEvent($event, $message, $bot)) {
+            $event = self::EVENT_ALIASES[$event];
         }
 
-        if (isset(self::EVENT_ALIASES[$event])) {
-            // TODO: forward DM events
-            // $this->publish(self::EVENT_ALIASES[$event], $message);
+        foreach ($this->subscribers[$event] ?? [] as $handler) {
+            call_user_func($handler, $message);
         }
     }
 
@@ -328,5 +332,29 @@ class EventManager
             fn(int $carry, string $event) => $carry | self::INTENT_MAP[$event],
             0
         );
+    }
+
+    private function isDmEvent(string $event, array $message, Bot $bot): bool
+    {
+        switch ($event) {
+            case self::MESSAGE_CREATE:
+            case self::MESSAGE_UPDATE:
+            case self::MESSAGE_DELETE:
+            case self::CHANNEL_PINS_UPDATE:
+            case self::MESSAGE_REACTION_ADD:
+            case self::MESSAGE_REACTION_REMOVE:
+            case self::MESSAGE_REACTION_REMOVE_ALL:
+            case self::MESSAGE_REACTION_REMOVE_EMOJI:
+            case self::TYPING_START:
+                if (!isset($message['d']['channel_id'])) {
+                    return false;
+                }
+
+                $channelId = new Snowflake($message['d']['channel_id']);
+                $channel = Channel::loadById($bot->getApiClient(), $channelId);
+                return $channel->getType() === ChannelType::DM || $channel->getType() === ChannelType::GROUP_DM;
+            default:
+                return false;
+        }
     }
 }

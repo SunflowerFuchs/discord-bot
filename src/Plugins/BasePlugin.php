@@ -13,7 +13,7 @@ use SunflowerFuchs\DiscordBot\Bot;
 
 abstract class BasePlugin
 {
-    protected ?Bot $bot = null;
+    private ?Bot $bot = null;
 
     abstract public function init();
 

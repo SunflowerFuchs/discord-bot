@@ -14,9 +14,11 @@ use Ratchet\RFC6455\Messaging\Message as RatchetMessage;
 use React\EventLoop\Factory;
 use React\EventLoop\StreamSelectLoop;
 use React\EventLoop\TimerInterface;
+use SunflowerFuchs\DiscordBot\Api\Constants\Events;
 use SunflowerFuchs\DiscordBot\Api\Objects\AllowedMentions;
 use SunflowerFuchs\DiscordBot\Api\Objects\Message;
 use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
+use SunflowerFuchs\DiscordBot\Api\Objects\User;
 use SunflowerFuchs\DiscordBot\Helpers\BotOptions;
 use SunflowerFuchs\DiscordBot\Helpers\EchoLogger;
 use SunflowerFuchs\DiscordBot\Helpers\EventManager;
@@ -164,16 +166,25 @@ class Bot implements LoggerAwareInterface
 
     protected function initEventManager(): void
     {
-        $this->eventManager->subscribe(EventManager::READY, function (array $message) {
+        $this->eventManager->subscribe(Events::READY, function (string $sessionId, User $user) {
             $this->logger->info("Gateway session initialized.");
-            $this->sessionId = $message['d']['session_id'];
-            $this->userId = new Snowflake($message['d']['user']['id']);
+            $this->sessionId = $sessionId;
+            $this->userId = $user->getId();
         });
 
-        $this->eventManager->subscribe(EventManager::MESSAGE_CREATE, function (array $message) {
-            $msg = new Message($message['d']);
-            if ($msg->isCommand($this->getPrefix())) {
-                $this->runCommand($msg->getCommand($this->getPrefix()), $msg);
+        $this->eventManager->subscribe(Events::RECONNECT, function () {
+            $this->logger->info("Reconnect event received.");
+            $this->reconnectGateway();
+        });
+
+        $this->eventManager->subscribe(Events::INVALID_SESSION, function (bool $canResume) {
+            $this->logger->info("Invalid_session event received.");
+            $this->reconnectGateway($canResume);
+        });
+
+        $this->eventManager->subscribe(Events::MESSAGE_CREATE, function (Message $message) {
+            if ($message->isCommand($this->getPrefix())) {
+                $this->runCommand($message->getCommand($this->getPrefix()), $message);
             }
         });
     }

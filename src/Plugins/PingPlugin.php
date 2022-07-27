@@ -6,30 +6,29 @@ declare(strict_types=1);
 namespace SunflowerFuchs\DiscordBot\Plugins;
 
 
+use SunflowerFuchs\DiscordBot\Api\Constants\Events;
 use SunflowerFuchs\DiscordBot\Api\Objects\AllowedMentions;
 use SunflowerFuchs\DiscordBot\Api\Objects\Message;
 use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
 use SunflowerFuchs\DiscordBot\Api\Objects\User;
-use SunflowerFuchs\DiscordBot\Helpers\EventManager;
 
 class PingPlugin extends BasePlugin
 {
     public function init()
     {
-        $this->getBot()->registerCommand('ping', fn($msg) => $this->ping($msg));
+        $this->getBot()->registerCommand('ping', [$this, 'ping']);
 
         // Enable pinging via DM
         // I should probably create a $bot->registerDmCommand function for this
-        $this->getBot()->subscribeToEvent(EventManager::DM_MESSAGE_CREATE, function (array $msg) {
-            $message = new Message($msg['d']);
+        $this->getBot()->subscribeToEvent(Events::DM_MESSAGE_CREATE, function (Message $message) {
             $prefix = $this->getBot()->getPrefix();
-            if ($message->isCommand($prefix) && $message->getCommand($prefix)) {
+            if ($message->isCommand($prefix) && $message->getCommand($prefix) === 'ping') {
                 $this->ping($message);
             }
         });
     }
 
-    protected function ping(Message $msg): bool
+    public function ping(Message $msg): bool
     {
         $channelId = $msg->getChannelId();
         if (!$msg->isUserMessage()) {

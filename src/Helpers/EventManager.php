@@ -5,195 +5,32 @@ declare(strict_types=1);
 namespace SunflowerFuchs\DiscordBot\Helpers;
 
 use SunflowerFuchs\DiscordBot\Api\Constants\ChannelType;
+use SunflowerFuchs\DiscordBot\Api\Constants\Events;
 use SunflowerFuchs\DiscordBot\Api\Objects\Channel;
+use SunflowerFuchs\DiscordBot\Api\Objects\Guild;
+use SunflowerFuchs\DiscordBot\Api\Objects\GuildMember;
+use SunflowerFuchs\DiscordBot\Api\Objects\Integration;
+use SunflowerFuchs\DiscordBot\Api\Objects\Message;
+use SunflowerFuchs\DiscordBot\Api\Objects\MessageInteraction;
 use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
+use SunflowerFuchs\DiscordBot\Api\Objects\StageInstance;
+use SunflowerFuchs\DiscordBot\Api\Objects\ThreadMember;
+use SunflowerFuchs\DiscordBot\Api\Objects\User;
+use SunflowerFuchs\DiscordBot\Api\Objects\VoiceState;
 use SunflowerFuchs\DiscordBot\Bot;
 
 class EventManager
 {
-    /** @var string defines the heartbeat interval */
-    public const HELLO = 'HELLO';
-    /** @var string contains the initial state information */
-    public const READY = 'READY';
-    /** @var string response to Resume */
-    public const RESUMED = 'RESUMED';
-    /** @var string server is going away, client should reconnect to gateway and resume */
-    public const RECONNECT = 'RECONNECT';
-    /** @var string failure response to Identify or Resume or invalid active session */
-    public const INVALID_SESSION = 'INVALID_SESSION';
-    /** @var string application command permission was updated */
-    public const APPLICATION_COMMAND_PERMISSIONS_UPDATE = 'APPLICATION_COMMAND_PERMISSIONS_UPDATE';
-    /** @var string auto moderation rule was created */
-    public const AUTO_MODERATION_RULE_CREATE = 'AUTO_MODERATION_RULE_CREATE';
-    /** @var string auto moderation rule was updated */
-    public const AUTO_MODERATION_RULE_UPDATE = 'AUTO_MODERATION_RULE_UPDATE';
-    /** @var string auto moderation rule was deleted */
-    public const AUTO_MODERATION_RULE_DELETE = 'AUTO_MODERATION_RULE_DELETE';
-    /** @var string auto moderation rule was triggered and an action was executed (e.g. a message was blocked) */
-    public const AUTO_MODERATION_ACTION_EXECUTION = 'AUTO_MODERATION_ACTION_EXECUTION';
-    /** @var string new guild channel created */
-    public const CHANNEL_CREATE = 'CHANNEL_CREATE';
-    /** @var string channel was updated */
-    public const CHANNEL_UPDATE = 'CHANNEL_UPDATE';
-    /** @var string channel was deleted */
-    public const CHANNEL_DELETE = 'CHANNEL_DELETE';
-    /** @var string message was pinned or unpinned */
-    public const CHANNEL_PINS_UPDATE = 'CHANNEL_PINS_UPDATE';
-    /** @var string thread created, also sent when being added to a private thread */
-    public const THREAD_CREATE = 'THREAD_CREATE';
-    /** @var string thread was updated */
-    public const THREAD_UPDATE = 'THREAD_UPDATE';
-    /** @var string thread was deleted */
-    public const THREAD_DELETE = 'THREAD_DELETE';
-    /** @var string sent when gaining access to a channel, contains all active threads in that channel */
-    public const THREAD_LIST_SYNC = 'THREAD_LIST_SYNC';
-    /** @var string thread member for the current user was updated */
-    public const THREAD_MEMBER_UPDATE = 'THREAD_MEMBER_UPDATE';
-    /** @var string some user(s) were added to or removed from a thread */
-    public const THREAD_MEMBERS_UPDATE = 'THREAD_MEMBERS_UPDATE';
-    /** @var string lazy-load for unavailable guild, guild became available, or user joined a new guild */
-    public const GUILD_CREATE = 'GUILD_CREATE';
-    /** @var string guild was updated */
-    public const GUILD_UPDATE = 'GUILD_UPDATE';
-    /** @var string guild became unavailable, or user left/was removed from a guild */
-    public const GUILD_DELETE = 'GUILD_DELETE';
-    /** @var string user was banned from a guild */
-    public const GUILD_BAN_ADD = 'GUILD_BAN_ADD';
-    /** @var string user was unbanned from a guild */
-    public const GUILD_BAN_REMOVE = 'GUILD_BAN_REMOVE';
-    /** @var string guild emojis were updated */
-    public const GUILD_EMOJIS_UPDATE = 'GUILD_EMOJIS_UPDATE';
-    /** @var string guild stickers were updated */
-    public const GUILD_STICKERS_UPDATE = 'GUILD_STICKERS_UPDATE';
-    /** @var string guild integration was updated */
-    public const GUILD_INTEGRATIONS_UPDATE = 'GUILD_INTEGRATIONS_UPDATE';
-    /** @var string new user joined a guild */
-    public const GUILD_MEMBER_ADD = 'GUILD_MEMBER_ADD';
-    /** @var string user was removed from a guild */
-    public const GUILD_MEMBER_REMOVE = 'GUILD_MEMBER_REMOVE';
-    /** @var string guild member was updated */
-    public const GUILD_MEMBER_UPDATE = 'GUILD_MEMBER_UPDATE';
-    /** @var string response to Request Guild Members */
-    public const GUILD_MEMBERS_CHUNK = 'GUILD_MEMBERS_CHUNK';
-    /** @var string guild role was created */
-    public const GUILD_ROLE_CREATE = 'GUILD_ROLE_CREATE';
-    /** @var string guild role was updated */
-    public const GUILD_ROLE_UPDATE = 'GUILD_ROLE_UPDATE';
-    /** @var string guild role was deleted */
-    public const GUILD_ROLE_DELETE = 'GUILD_ROLE_DELETE';
-    /** @var string guild scheduled event was created */
-    public const GUILD_SCHEDULED_EVENT_CREATE = 'GUILD_SCHEDULED_EVENT_CREATE';
-    /** @var string guild scheduled event was updated */
-    public const GUILD_SCHEDULED_EVENT_UPDATE = 'GUILD_SCHEDULED_EVENT_UPDATE';
-    /** @var string guild scheduled event was deleted */
-    public const GUILD_SCHEDULED_EVENT_DELETE = 'GUILD_SCHEDULED_EVENT_DELETE';
-    /** @var string user subscribed to a guild scheduled event */
-    public const GUILD_SCHEDULED_EVENT_USER_ADD = 'GUILD_SCHEDULED_EVENT_USER_ADD';
-    /** @var string user unsubscribed from a guild scheduled event */
-    public const GUILD_SCHEDULED_EVENT_USER_REMOVE = 'GUILD_SCHEDULED_EVENT_USER_REMOVE';
-    /** @var string guild integration was created */
-    public const INTEGRATION_CREATE = 'INTEGRATION_CREATE';
-    /** @var string guild integration was updated */
-    public const INTEGRATION_UPDATE = 'INTEGRATION_UPDATE';
-    /** @var string guild integration was deleted */
-    public const INTEGRATION_DELETE = 'INTEGRATION_DELETE';
-    /** @var string user used an interaction, such as an Application Command */
-    public const INTERACTION_CREATE = 'INTERACTION_CREATE';
-    /** @var string invite to a channel was created */
-    public const INVITE_CREATE = 'INVITE_CREATE';
-    /** @var string invite to a channel was deleted */
-    public const INVITE_DELETE = 'INVITE_DELETE';
-    /** @var string message was created */
-    public const MESSAGE_CREATE = 'MESSAGE_CREATE';
-    /** @var string message was edited */
-    public const MESSAGE_UPDATE = 'MESSAGE_UPDATE';
-    /** @var string message was deleted */
-    public const MESSAGE_DELETE = 'MESSAGE_DELETE';
-    /** @var string multiple messages were deleted at once */
-    public const MESSAGE_DELETE_BULK = 'MESSAGE_DELETE_BULK';
-    /** @var string user reacted to a message */
-    public const MESSAGE_REACTION_ADD = 'MESSAGE_REACTION_ADD';
-    /** @var string user removed a reaction from a message */
-    public const MESSAGE_REACTION_REMOVE = 'MESSAGE_REACTION_REMOVE';
-    /** @var string all reactions were explicitly removed from a message */
-    public const MESSAGE_REACTION_REMOVE_ALL = 'MESSAGE_REACTION_REMOVE_ALL';
-    /** @var string all reactions for a given emoji were explicitly removed from a message */
-    public const MESSAGE_REACTION_REMOVE_EMOJI = 'MESSAGE_REACTION_REMOVE_EMOJI';
-    /** @var string user was updated */
-    public const PRESENCE_UPDATE = 'PRESENCE_UPDATE';
-    /** @var string stage instance was created */
-    public const STAGE_INSTANCE_CREATE = 'STAGE_INSTANCE_CREATE';
-    /** @var string stage instance was deleted or closed */
-    public const STAGE_INSTANCE_DELETE = 'STAGE_INSTANCE_DELETE';
-    /** @var string stage instance was updated */
-    public const STAGE_INSTANCE_UPDATE = 'STAGE_INSTANCE_UPDATE';
-    /** @var string user started typing in a channel */
-    public const TYPING_START = 'TYPING_START';
-    /** @var string properties about the user changed */
-    public const USER_UPDATE = 'USER_UPDATE';
-    /** @var string someone joined, left, or moved a voice channel */
-    public const VOICE_STATE_UPDATE = 'VOICE_STATE_UPDATE';
-    /** @var string guild'S voice server was updated */
-    public const VOICE_SERVER_UPDATE = 'VOICE_SERVER_UPDATE';
-    /** @var string guild channel webhook was created, update, or deleted */
-    public const WEBHOOKS_UPDATE = 'WEBHOOKS_UPDATE';
-
-    /**
-     * @var string
-     * @see EventManager::MESSAGE_CREATE
-     */
-    public const DM_MESSAGE_CREATE = 'DM_MESSAGE_CREATE';
-    /**
-     * @var string
-     * @see EventManager::MESSAGE_UPDATE
-     */
-    public const DM_MESSAGE_UPDATE = 'DM_MESSAGE_UPDATE';
-    /**
-     * @var string
-     * @see EventManager::MESSAGE_DELETE
-     */
-    public const DM_MESSAGE_DELETE = 'DM_MESSAGE_DELETE';
-    /**
-     * @var string
-     * @see EventManager::CHANNEL_PINS_UPDATE
-     */
-    public const DM_CHANNEL_PINS_UPDATE = 'DM_CHANNEL_PINS_UPDATE';
-    /**
-     * @var string
-     * @see EventManager::MESSAGE_REACTION_ADD
-     */
-    public const DM_MESSAGE_REACTION_ADD = 'DM_MESSAGE_REACTION_ADD';
-    /**
-     * @var string
-     * @see EventManager::MESSAGE_REACTION_REMOVE
-     */
-    public const DM_MESSAGE_REACTION_REMOVE = 'DM_MESSAGE_REACTION_REMOVE';
-    /**
-     * @var string
-     * @see EventManager::MESSAGE_REACTION_REMOVE_ALL
-     */
-    public const DM_MESSAGE_REACTION_REMOVE_ALL = 'DM_MESSAGE_REACTION_REMOVE_ALL';
-    /**
-     * @var string
-     * @see EventManager::MESSAGE_REACTION_REMOVE_EMOJI
-     */
-    public const DM_MESSAGE_REACTION_REMOVE_EMOJI = 'DM_MESSAGE_REACTION_REMOVE_EMOJI';
-    /**
-     * @var string
-     * @see EventManager::TYPING_START
-     */
-    public const DM_TYPING_START = 'DM_TYPING_START';
-
     protected const EVENT_ALIASES = [
-        self::MESSAGE_CREATE => self::DM_MESSAGE_CREATE,
-        self::MESSAGE_UPDATE => self::DM_MESSAGE_UPDATE,
-        self::MESSAGE_DELETE => self::DM_MESSAGE_DELETE,
-        self::CHANNEL_PINS_UPDATE => self::DM_CHANNEL_PINS_UPDATE,
-        self::MESSAGE_REACTION_ADD => self::DM_MESSAGE_REACTION_ADD,
-        self::MESSAGE_REACTION_REMOVE => self::DM_MESSAGE_REACTION_REMOVE,
-        self::MESSAGE_REACTION_REMOVE_ALL => self::DM_MESSAGE_REACTION_REMOVE_ALL,
-        self::MESSAGE_REACTION_REMOVE_EMOJI => self::DM_MESSAGE_REACTION_REMOVE_EMOJI,
-        self::TYPING_START => self::DM_TYPING_START,
+        Events::MESSAGE_CREATE => Events::DM_MESSAGE_CREATE,
+        Events::MESSAGE_UPDATE => Events::DM_MESSAGE_UPDATE,
+        Events::MESSAGE_DELETE => Events::DM_MESSAGE_DELETE,
+        Events::CHANNEL_PINS_UPDATE => Events::DM_CHANNEL_PINS_UPDATE,
+        Events::MESSAGE_REACTION_ADD => Events::DM_MESSAGE_REACTION_ADD,
+        Events::MESSAGE_REACTION_REMOVE => Events::DM_MESSAGE_REACTION_REMOVE,
+        Events::MESSAGE_REACTION_REMOVE_ALL => Events::DM_MESSAGE_REACTION_REMOVE_ALL,
+        Events::MESSAGE_REACTION_REMOVE_EMOJI => Events::DM_MESSAGE_REACTION_REMOVE_EMOJI,
+        Events::TYPING_START => Events::DM_TYPING_START,
     ];
 
     protected const INTENT_GUILDS = 1 << 0;
@@ -217,78 +54,78 @@ class EventManager
     protected const INTENT_AUTO_MODERATION_EXECUTION = 1 << 21;
 
     protected const INTENT_MAP = [
-        self::HELLO => 0,
-        self::READY => 0,
-        self::RESUMED => 0,
-        self::RECONNECT => 0,
-        self::INVALID_SESSION => 0,
-        self::APPLICATION_COMMAND_PERMISSIONS_UPDATE => 0,
-        self::AUTO_MODERATION_RULE_CREATE => self::INTENT_AUTO_MODERATION_CONFIGURATION,
-        self::AUTO_MODERATION_RULE_UPDATE => self::INTENT_AUTO_MODERATION_CONFIGURATION,
-        self::AUTO_MODERATION_RULE_DELETE => self::INTENT_AUTO_MODERATION_CONFIGURATION,
-        self::AUTO_MODERATION_ACTION_EXECUTION => self::INTENT_AUTO_MODERATION_EXECUTION,
-        self::CHANNEL_CREATE => self::INTENT_GUILDS,
-        self::CHANNEL_UPDATE => self::INTENT_GUILDS,
-        self::CHANNEL_DELETE => self::INTENT_GUILDS,
-        self::CHANNEL_PINS_UPDATE => self::INTENT_GUILDS,
-        self::THREAD_CREATE => self::INTENT_GUILDS,
-        self::THREAD_UPDATE => self::INTENT_GUILDS,
-        self::THREAD_DELETE => self::INTENT_GUILDS,
-        self::THREAD_LIST_SYNC => self::INTENT_GUILDS,
-        self::THREAD_MEMBER_UPDATE => self::INTENT_GUILDS,
-        self::THREAD_MEMBERS_UPDATE => self::INTENT_GUILDS | self::INTENT_GUILD_MEMBERS,
-        self::GUILD_CREATE => self::INTENT_GUILDS,
-        self::GUILD_UPDATE => self::INTENT_GUILDS,
-        self::GUILD_DELETE => self::INTENT_GUILDS,
-        self::GUILD_BAN_ADD => self::INTENT_GUILD_BANS,
-        self::GUILD_BAN_REMOVE => self::INTENT_GUILD_BANS,
-        self::GUILD_EMOJIS_UPDATE => self::INTENT_GUILD_EMOJIS_AND_STICKERS,
-        self::GUILD_STICKERS_UPDATE => self::INTENT_GUILD_EMOJIS_AND_STICKERS,
-        self::GUILD_INTEGRATIONS_UPDATE => self::INTENT_GUILD_INTEGRATIONS,
-        self::GUILD_MEMBER_ADD => self::INTENT_GUILD_MEMBERS,
-        self::GUILD_MEMBER_REMOVE => self::INTENT_GUILD_MEMBERS,
-        self::GUILD_MEMBER_UPDATE => self::INTENT_GUILD_MEMBERS,
-        self::GUILD_MEMBERS_CHUNK => 0,
-        self::GUILD_ROLE_CREATE => self::INTENT_GUILDS,
-        self::GUILD_ROLE_UPDATE => self::INTENT_GUILDS,
-        self::GUILD_ROLE_DELETE => self::INTENT_GUILDS,
-        self::GUILD_SCHEDULED_EVENT_CREATE => self::INTENT_GUILD_SCHEDULED_EVENTS,
-        self::GUILD_SCHEDULED_EVENT_UPDATE => self::INTENT_GUILD_SCHEDULED_EVENTS,
-        self::GUILD_SCHEDULED_EVENT_DELETE => self::INTENT_GUILD_SCHEDULED_EVENTS,
-        self::GUILD_SCHEDULED_EVENT_USER_ADD => self::INTENT_GUILD_SCHEDULED_EVENTS,
-        self::GUILD_SCHEDULED_EVENT_USER_REMOVE => self::INTENT_GUILD_SCHEDULED_EVENTS,
-        self::INTEGRATION_CREATE => self::INTENT_GUILD_INTEGRATIONS,
-        self::INTEGRATION_UPDATE => self::INTENT_GUILD_INTEGRATIONS,
-        self::INTEGRATION_DELETE => self::INTENT_GUILD_INTEGRATIONS,
-        self::INTERACTION_CREATE => 0,
-        self::INVITE_CREATE => self::INTENT_GUILD_INVITES,
-        self::INVITE_DELETE => self::INTENT_GUILD_INVITES,
-        self::MESSAGE_CREATE => self::INTENT_GUILD_MESSAGES | self::INTENT_MESSAGE_CONTENT,
-        self::MESSAGE_UPDATE => self::INTENT_GUILD_MESSAGES,
-        self::MESSAGE_DELETE => self::INTENT_GUILD_MESSAGES,
-        self::MESSAGE_DELETE_BULK => self::INTENT_GUILD_MESSAGES,
-        self::MESSAGE_REACTION_ADD => self::INTENT_GUILD_MESSAGE_REACTIONS,
-        self::MESSAGE_REACTION_REMOVE => self::INTENT_GUILD_MESSAGE_REACTIONS,
-        self::MESSAGE_REACTION_REMOVE_ALL => self::INTENT_GUILD_MESSAGE_REACTIONS,
-        self::MESSAGE_REACTION_REMOVE_EMOJI => self::INTENT_GUILD_MESSAGE_REACTIONS,
-        self::PRESENCE_UPDATE => self::INTENT_GUILD_PRESENCES,
-        self::STAGE_INSTANCE_CREATE => self::INTENT_GUILDS,
-        self::STAGE_INSTANCE_DELETE => self::INTENT_GUILDS,
-        self::STAGE_INSTANCE_UPDATE => self::INTENT_GUILDS,
-        self::TYPING_START => self::INTENT_GUILD_MESSAGE_TYPING,
-        self::USER_UPDATE => 0,
-        self::VOICE_STATE_UPDATE => self::INTENT_GUILD_VOICE_STATES,
-        self::VOICE_SERVER_UPDATE => 0,
-        self::WEBHOOKS_UPDATE => self::INTENT_GUILD_WEBHOOKS,
-        self::DM_MESSAGE_CREATE => self::INTENT_DIRECT_MESSAGES,
-        self::DM_MESSAGE_UPDATE => self::INTENT_DIRECT_MESSAGES,
-        self::DM_MESSAGE_DELETE => self::INTENT_DIRECT_MESSAGES,
-        self::DM_CHANNEL_PINS_UPDATE => self::INTENT_DIRECT_MESSAGES,
-        self::DM_MESSAGE_REACTION_ADD => self::INTENT_DIRECT_MESSAGE_REACTIONS,
-        self::DM_MESSAGE_REACTION_REMOVE => self::INTENT_DIRECT_MESSAGE_REACTIONS,
-        self::DM_MESSAGE_REACTION_REMOVE_ALL => self::INTENT_DIRECT_MESSAGE_REACTIONS,
-        self::DM_MESSAGE_REACTION_REMOVE_EMOJI => self::INTENT_DIRECT_MESSAGE_REACTIONS,
-        self::DM_TYPING_START => self::INTENT_DIRECT_MESSAGE_TYPING,
+        Events::HELLO => 0,
+        Events::READY => 0,
+        Events::RESUMED => 0,
+        Events::RECONNECT => 0,
+        Events::INVALID_SESSION => 0,
+        Events::APPLICATION_COMMAND_PERMISSIONS_UPDATE => 0,
+        Events::AUTO_MODERATION_RULE_CREATE => self::INTENT_AUTO_MODERATION_CONFIGURATION,
+        Events::AUTO_MODERATION_RULE_UPDATE => self::INTENT_AUTO_MODERATION_CONFIGURATION,
+        Events::AUTO_MODERATION_RULE_DELETE => self::INTENT_AUTO_MODERATION_CONFIGURATION,
+        Events::AUTO_MODERATION_ACTION_EXECUTION => self::INTENT_AUTO_MODERATION_EXECUTION,
+        Events::CHANNEL_CREATE => self::INTENT_GUILDS,
+        Events::CHANNEL_UPDATE => self::INTENT_GUILDS,
+        Events::CHANNEL_DELETE => self::INTENT_GUILDS,
+        Events::CHANNEL_PINS_UPDATE => self::INTENT_GUILDS,
+        Events::THREAD_CREATE => self::INTENT_GUILDS,
+        Events::THREAD_UPDATE => self::INTENT_GUILDS,
+        Events::THREAD_DELETE => self::INTENT_GUILDS,
+        Events::THREAD_LIST_SYNC => self::INTENT_GUILDS,
+        Events::THREAD_MEMBER_UPDATE => self::INTENT_GUILDS,
+        Events::THREAD_MEMBERS_UPDATE => self::INTENT_GUILDS | self::INTENT_GUILD_MEMBERS,
+        Events::GUILD_CREATE => self::INTENT_GUILDS,
+        Events::GUILD_UPDATE => self::INTENT_GUILDS,
+        Events::GUILD_DELETE => self::INTENT_GUILDS,
+        Events::GUILD_BAN_ADD => self::INTENT_GUILD_BANS,
+        Events::GUILD_BAN_REMOVE => self::INTENT_GUILD_BANS,
+        Events::GUILD_EMOJIS_UPDATE => self::INTENT_GUILD_EMOJIS_AND_STICKERS,
+        Events::GUILD_STICKERS_UPDATE => self::INTENT_GUILD_EMOJIS_AND_STICKERS,
+        Events::GUILD_INTEGRATIONS_UPDATE => self::INTENT_GUILD_INTEGRATIONS,
+        Events::GUILD_MEMBER_ADD => self::INTENT_GUILD_MEMBERS,
+        Events::GUILD_MEMBER_REMOVE => self::INTENT_GUILD_MEMBERS,
+        Events::GUILD_MEMBER_UPDATE => self::INTENT_GUILD_MEMBERS,
+        Events::GUILD_MEMBERS_CHUNK => 0,
+        Events::GUILD_ROLE_CREATE => self::INTENT_GUILDS,
+        Events::GUILD_ROLE_UPDATE => self::INTENT_GUILDS,
+        Events::GUILD_ROLE_DELETE => self::INTENT_GUILDS,
+        Events::GUILD_SCHEDULED_EVENT_CREATE => self::INTENT_GUILD_SCHEDULED_EVENTS,
+        Events::GUILD_SCHEDULED_EVENT_UPDATE => self::INTENT_GUILD_SCHEDULED_EVENTS,
+        Events::GUILD_SCHEDULED_EVENT_DELETE => self::INTENT_GUILD_SCHEDULED_EVENTS,
+        Events::GUILD_SCHEDULED_EVENT_USER_ADD => self::INTENT_GUILD_SCHEDULED_EVENTS,
+        Events::GUILD_SCHEDULED_EVENT_USER_REMOVE => self::INTENT_GUILD_SCHEDULED_EVENTS,
+        Events::INTEGRATION_CREATE => self::INTENT_GUILD_INTEGRATIONS,
+        Events::INTEGRATION_UPDATE => self::INTENT_GUILD_INTEGRATIONS,
+        Events::INTEGRATION_DELETE => self::INTENT_GUILD_INTEGRATIONS,
+        Events::INTERACTION_CREATE => 0,
+        Events::INVITE_CREATE => self::INTENT_GUILD_INVITES,
+        Events::INVITE_DELETE => self::INTENT_GUILD_INVITES,
+        Events::MESSAGE_CREATE => self::INTENT_GUILD_MESSAGES | self::INTENT_MESSAGE_CONTENT,
+        Events::MESSAGE_UPDATE => self::INTENT_GUILD_MESSAGES,
+        Events::MESSAGE_DELETE => self::INTENT_GUILD_MESSAGES,
+        Events::MESSAGE_DELETE_BULK => self::INTENT_GUILD_MESSAGES,
+        Events::MESSAGE_REACTION_ADD => self::INTENT_GUILD_MESSAGE_REACTIONS,
+        Events::MESSAGE_REACTION_REMOVE => self::INTENT_GUILD_MESSAGE_REACTIONS,
+        Events::MESSAGE_REACTION_REMOVE_ALL => self::INTENT_GUILD_MESSAGE_REACTIONS,
+        Events::MESSAGE_REACTION_REMOVE_EMOJI => self::INTENT_GUILD_MESSAGE_REACTIONS,
+        Events::PRESENCE_UPDATE => self::INTENT_GUILD_PRESENCES,
+        Events::STAGE_INSTANCE_CREATE => self::INTENT_GUILDS,
+        Events::STAGE_INSTANCE_DELETE => self::INTENT_GUILDS,
+        Events::STAGE_INSTANCE_UPDATE => self::INTENT_GUILDS,
+        Events::TYPING_START => self::INTENT_GUILD_MESSAGE_TYPING,
+        Events::USER_UPDATE => 0,
+        Events::VOICE_STATE_UPDATE => self::INTENT_GUILD_VOICE_STATES,
+        Events::VOICE_SERVER_UPDATE => 0,
+        Events::WEBHOOKS_UPDATE => self::INTENT_GUILD_WEBHOOKS,
+        Events::DM_MESSAGE_CREATE => self::INTENT_DIRECT_MESSAGES,
+        Events::DM_MESSAGE_UPDATE => self::INTENT_DIRECT_MESSAGES,
+        Events::DM_MESSAGE_DELETE => self::INTENT_DIRECT_MESSAGES,
+        Events::DM_CHANNEL_PINS_UPDATE => self::INTENT_DIRECT_MESSAGES,
+        Events::DM_MESSAGE_REACTION_ADD => self::INTENT_DIRECT_MESSAGE_REACTIONS,
+        Events::DM_MESSAGE_REACTION_REMOVE => self::INTENT_DIRECT_MESSAGE_REACTIONS,
+        Events::DM_MESSAGE_REACTION_REMOVE_ALL => self::INTENT_DIRECT_MESSAGE_REACTIONS,
+        Events::DM_MESSAGE_REACTION_REMOVE_EMOJI => self::INTENT_DIRECT_MESSAGE_REACTIONS,
+        Events::DM_TYPING_START => self::INTENT_DIRECT_MESSAGE_TYPING,
     ];
 
     /**
@@ -313,6 +150,7 @@ class EventManager
      *
      * @param string $event The event to publish to, e.g. {@see EventManager::MESSAGE_CREATE}
      * @param array $message
+     * @param Bot $bot
      */
     public function publish(string $event, array $message, Bot $bot)
     {
@@ -321,7 +159,8 @@ class EventManager
         }
 
         foreach ($this->subscribers[$event] ?? [] as $handler) {
-            call_user_func($handler, $message);
+            $parameters = $this->resolveParameters($event, $message);
+            call_user_func($handler, ...$parameters);
         }
     }
 
@@ -337,15 +176,15 @@ class EventManager
     private function isDmEvent(string $event, array $message, Bot $bot): bool
     {
         switch ($event) {
-            case self::MESSAGE_CREATE:
-            case self::MESSAGE_UPDATE:
-            case self::MESSAGE_DELETE:
-            case self::CHANNEL_PINS_UPDATE:
-            case self::MESSAGE_REACTION_ADD:
-            case self::MESSAGE_REACTION_REMOVE:
-            case self::MESSAGE_REACTION_REMOVE_ALL:
-            case self::MESSAGE_REACTION_REMOVE_EMOJI:
-            case self::TYPING_START:
+            case Events::MESSAGE_CREATE:
+            case Events::MESSAGE_UPDATE:
+            case Events::MESSAGE_DELETE:
+            case Events::CHANNEL_PINS_UPDATE:
+            case Events::MESSAGE_REACTION_ADD:
+            case Events::MESSAGE_REACTION_REMOVE:
+            case Events::MESSAGE_REACTION_REMOVE_ALL:
+            case Events::MESSAGE_REACTION_REMOVE_EMOJI:
+            case Events::TYPING_START:
                 if (!isset($message['d']['channel_id'])) {
                     return false;
                 }
@@ -355,6 +194,141 @@ class EventManager
                 return $channel->getType() === ChannelType::DM || $channel->getType() === ChannelType::GROUP_DM;
             default:
                 return false;
+        }
+    }
+
+    private function resolveParameters(string $event, array $message): array
+    {
+        switch ($event) {
+            case Events::HELLO:
+                return [$message['d']['heartbeat_interval']];
+            case Events::READY:
+                return [
+                    $message['d']['session_id'],
+                    new User($message['d']['user']),
+                    $message['d']['guilds'], // TODO: implement Unavailable Guild object
+                    $message['d']['application'], // TODO: implement Partial Application object
+                    $message['d']['shard'] ?? null
+                ];
+            case Events::RECONNECT:
+            case Events::RESUMED:
+                return [];
+            case Events::CHANNEL_CREATE:
+            case Events::CHANNEL_DELETE:
+            case Events::THREAD_CREATE:
+            case Events::THREAD_DELETE:
+                return [new Channel($message['d'])];
+            case Events::CHANNEL_UPDATE:
+            case Events::THREAD_UPDATE:
+                return [empty($message['d']) ? null : new Channel($message['d'])];
+            case Events::THREAD_MEMBER_UPDATE:
+                $guildId = new Snowflake($message['d']['guild_id']);
+                unset($message['d']['guild_id']);
+                return [new ThreadMember($message['d']), $guildId];
+            case Events::GUILD_CREATE:
+                // TODO: clean up additional fields
+                return [new Guild($message['d']), $message['d']];
+            case Events::GUILD_UPDATE:
+                return [new Guild($message['d'])];
+            case Events::GUILD_MEMBER_ADD:
+                return [new GuildMember($message['d']), new Snowflake($message['d']['guild_id'])];
+            case Events::INTEGRATION_CREATE:
+            case Events::INTEGRATION_UPDATE:
+                return [new Integration($message['d']), new Snowflake($message['d']['guild_id'])];
+            case Events::INTERACTION_CREATE:
+                return [new MessageInteraction($message['d'])];
+            case Events::MESSAGE_CREATE:
+            case Events::MESSAGE_UPDATE:
+                return [
+                    new Message($message['d']),
+                    new Snowflake($message['d']['guild_id']),
+                    isset($message['d']['member']) ? new GuildMember($message['d']['member']) : null
+                ];
+            case Events::DM_MESSAGE_CREATE:
+            case Events::DM_MESSAGE_UPDATE:
+                return [new Message($message['d'])];
+            case Events::STAGE_INSTANCE_CREATE:
+            case Events::STAGE_INSTANCE_UPDATE:
+            case Events::STAGE_INSTANCE_DELETE:
+                return [new StageInstance($message['d'])];
+            case Events::USER_UPDATE:
+                return [new User($message['d'])];
+            case Events::VOICE_STATE_UPDATE:
+                return [new VoiceState($message['d'])];
+            case Events::INVALID_SESSION:
+            case Events::APPLICATION_COMMAND_PERMISSIONS_UPDATE:
+                // TODO: implement Application Command Permission object
+            case Events::AUTO_MODERATION_RULE_CREATE:
+            case Events::AUTO_MODERATION_RULE_UPDATE:
+            case Events::AUTO_MODERATION_RULE_DELETE:
+                // TODO: implement Auto Moderation Rule object
+            case Events::AUTO_MODERATION_ACTION_EXECUTION:
+                //TODO: implement Auto Moderation Action Execution Event object
+            case Events::THREAD_LIST_SYNC:
+                // TODO: implement Thread List Sync Event object
+            case Events::THREAD_MEMBERS_UPDATE:
+                // TODO: implement Thread Member Update Event object
+            case Events::GUILD_DELETE:
+                // TODO: implement Unavailable Guild object
+            case Events::GUILD_BAN_ADD:
+                // TODO: implement Guild Ban Add Event object
+            case Events::GUILD_BAN_REMOVE:
+                // TODO: implement Guild Ban Remove Event object
+            case Events::GUILD_EMOJIS_UPDATE:
+                // TODO: implement Guild Emojis Update Event object
+            case Events::GUILD_STICKERS_UPDATE:
+                // TODO: implement Guild Stickers Update Event object
+            case Events::GUILD_INTEGRATIONS_UPDATE:
+                // TODO: implement Guild Integrations Update Event object
+            case Events::GUILD_MEMBER_UPDATE:
+                // TODO: implement Guild Member Update Event object
+            case Events::GUILD_MEMBER_REMOVE:
+                // TODO: implement Guild Member Remove Event object
+            case Events::GUILD_MEMBERS_CHUNK:
+                // TODO: implement Guild Members Chunk Event object
+            case Events::GUILD_ROLE_CREATE:
+                // TODO: implement Guild Role Create Event object
+            case Events::GUILD_ROLE_UPDATE:
+                // TODO: implement Guild Role Update Event object
+            case Events::GUILD_ROLE_DELETE:
+                // TODO: implement Guild Role Delete Event object
+            case Events::GUILD_SCHEDULED_EVENT_CREATE:
+            case Events::GUILD_SCHEDULED_EVENT_UPDATE:
+            case Events::GUILD_SCHEDULED_EVENT_DELETE:
+                // TODO: implement Guild Scheduled Event object
+            case Events::GUILD_SCHEDULED_EVENT_USER_ADD:
+                // TODO: implement Guild Scheduled Event User Add Event object
+            case Events::GUILD_SCHEDULED_EVENT_USER_REMOVE:
+                // TODO: implement Guild Scheduled Event User Remove Event object
+            case Events::INTEGRATION_DELETE:
+                // TODO: implement Integration Delete Event object
+            case Events::INVITE_CREATE:
+                // TODO: implement Invite Create Event object
+            case Events::INVITE_DELETE:
+                // TODO: implement Invite Delete Event object
+            case Events::MESSAGE_DELETE:
+            case Events::DM_MESSAGE_DELETE:
+                // TODO: implement Message Delete Event object
+            case Events::MESSAGE_DELETE_BULK:
+                // TODO: implement Message Delete Bulk Event object
+            case Events::MESSAGE_REACTION_ADD:
+                // TODO: implement Message Reaction Add Event object
+            case Events::MESSAGE_REACTION_REMOVE:
+                // TODO: implement Message Reaction Remove Event object
+            case Events::MESSAGE_REACTION_REMOVE_ALL:
+                // TODO: implement Message Reaction Remove All Event object
+            case Events::MESSAGE_REACTION_REMOVE_EMOJI:
+                // TODO: implement Message Reaction Remove Emoji Event object
+            case Events::PRESENCE_UPDATE:
+                // TODO: implement Presence Update Event object
+            case Events::TYPING_START:
+                // TODO: implement Typing Start Event object
+            case Events::VOICE_SERVER_UPDATE:
+                // TODO: implement Voice Server Update Event object
+            case Events::WEBHOOKS_UPDATE:
+                // TODO: implement Webhooks Update Event object
+            default:
+                return [$message['d']];
         }
     }
 }

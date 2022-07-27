@@ -7,6 +7,7 @@ namespace SunflowerFuchs\DiscordBot\Plugins;
 
 
 use DateTime;
+use SunflowerFuchs\DiscordBot\Api\Constants\Events;
 use SunflowerFuchs\DiscordBot\Api\Objects\Message;
 
 class UptimePlugin extends BasePlugin
@@ -16,10 +17,19 @@ class UptimePlugin extends BasePlugin
     public function init()
     {
         $this->initTime = new DateTime();
-        $this->getBot()->registerCommand('uptime', fn($msg) => $this->showUptime($msg));
+        $this->getBot()->registerCommand('uptime', [$this, 'showUptime']);
+
+        // Enable asking for uptime via DM
+        // I should probably create a $bot->registerDmCommand function for this
+        $this->getBot()->subscribeToEvent(Events::DM_MESSAGE_CREATE, function (Message $message) {
+            $prefix = $this->getBot()->getPrefix();
+            if ($message->isCommand($prefix) && $message->getCommand($prefix) === 'uptime') {
+                $this->showUptime($message);
+            }
+        });
     }
 
-    protected function showUptime(Message $message): bool
+    public function showUptime(Message $message): bool
     {
         $startTime = $this->initTime->format('Y-m-d H:i T');
         $uptime = (new DateTime())->diff($this->initTime);

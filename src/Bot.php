@@ -22,6 +22,9 @@ use SunflowerFuchs\DiscordBot\Api\Objects\User;
 use SunflowerFuchs\DiscordBot\Helpers\BotOptions;
 use SunflowerFuchs\DiscordBot\Helpers\EchoLogger;
 use SunflowerFuchs\DiscordBot\Helpers\EventManager;
+use SunflowerFuchs\DiscordBot\Helpers\PermissionManager;
+use SunflowerFuchs\DiscordBot\Helpers\SimplePermissionManager;
+use SunflowerFuchs\DiscordBot\Plugins\AdminPermissionPlugin;
 use SunflowerFuchs\DiscordBot\Plugins\BasePlugin;
 use SunflowerFuchs\DiscordBot\Plugins\PingPlugin;
 use SunflowerFuchs\DiscordBot\Plugins\UptimePlugin;
@@ -38,6 +41,7 @@ class Bot implements LoggerAwareInterface
     protected const defaultPlugins = [
         PingPlugin::class,
         UptimePlugin::class,
+        AdminPermissionPlugin::class,
     ];
     public const BaseImageUrl = 'https://cdn.discordapp.com/';
 
@@ -56,6 +60,7 @@ class Bot implements LoggerAwareInterface
     protected bool $reconnect = false;
     protected bool $waitingForHeartbeatACK = false;
     protected EventManager $eventManager;
+    protected PermissionManager $permissionManager;
     protected LoopInterface $loop;
     protected LoggerInterface $logger;
     protected ?WebSocket $websocket = null;
@@ -73,11 +78,19 @@ class Bot implements LoggerAwareInterface
      */
     public function __construct(array $options)
     {
-        $this->logger = new EchoLogger();
+        // Moved the OptionsResolver into its own class for readability
+        $this->options = (new BotOptions())->resolve($options);
+
+        $this->logger = new EchoLogger($this->options['loglevel']);
         $this->eventManager = new EventManager();
+        $this->permissionManager = new SimplePermissionManager($this);
         $this->loop = Loop::get();
 
-        $this->setOptions($options);
+        // Filter out the token before logging, we don't want to print that
+        $this->logger->debug(
+            "Bot initialized with the following options: ",
+            ['options' => array_replace($this->options, ['token' => '*****' . substr($this->options['token'], -4)])]
+        );
     }
 
     protected function initialize(): void
@@ -123,32 +136,6 @@ class Bot implements LoggerAwareInterface
         return true;
     }
 
-    /**
-     * @param array $options
-     *
-     * @throws UndefinedOptionsException
-     * @throws InvalidOptionsException
-     * @throws MissingOptionsException
-     * @throws OptionDefinitionException
-     * @throws NoSuchOptionException
-     * @throws AccessException
-     */
-    public function setOptions(array $options): void
-    {
-        // Moved the OptionsResolver into its own class for readability
-        $this->options = (new BotOptions())->resolve($options);
-
-        if ($this->logger instanceof EchoLogger) {
-            $this->setLogger(new EchoLogger($this->options['loglevel']));
-        }
-
-        // Filter out the token before logging, we don't want to print that
-        $this->logger->debug(
-            "Options set",
-            ['options' => array_replace($this->options, ['token' => '*****' . substr($this->options['token'], -4)])]
-        );
-    }
-
     public function getPrefix(): string
     {
         return $this->options['prefix'];
@@ -162,6 +149,15 @@ class Bot implements LoggerAwareInterface
     public function getLogger(): LoggerInterface
     {
         return $this->logger;
+    }
+
+    /**
+     * Currently only returns a SimplePermissionManager
+     * @return SimplePermissionManager
+     */
+    public function getPermissionManager(): PermissionManager
+    {
+        return $this->permissionManager;
     }
 
     protected function initEventManager(): void

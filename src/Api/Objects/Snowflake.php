@@ -31,6 +31,11 @@ class Snowflake
         return $this->snowflake;
     }
 
+    public function toInt(): int
+    {
+        return (int)$this->snowflake;
+    }
+
     /**
      * The timestamp of this snowflake in milliseconds
      *

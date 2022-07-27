@@ -149,7 +149,6 @@ class Message
         $this->channel_id = new Snowflake($data['channel_id']);
         $this->guild_id = !empty($data['guild_id']) ? new Snowflake($data['guild_id']) : null;
         $this->author = new User($data['author']);
-        $this->member = !empty($data['member']) ? new GuildMember($data['member']) : null;
         $this->content = $data['content'];
         $this->timestamp = strtotime($data['timestamp']);
         $this->edited_timestamp = !empty($data['edited_timestamp']) ? strtotime($data['edited_timestamp']) : 0;
@@ -183,6 +182,11 @@ class Message
             $data['embeds'] ?? []);
         $this->components = array_map(fn($componentData) => ComponentFactory::factory($componentData),
             $data['components'] ?? []);
+
+        if ($this->webhook_id === null && !empty($data['member'])) {
+            $data['member']['user'] = $data['author'];
+        }
+        $this->member = !empty($data['member']) ? new GuildMember($data['member']) : null;
     }
 
     /**
@@ -488,7 +492,7 @@ class Message
      */
     public function isUserMessage(): bool
     {
-        return $this->getWebhookId() === null;
+        return $this->getWebhookId() === null && !$this->getAuthor()->isBot();
     }
 
     /**

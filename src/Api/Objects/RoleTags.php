@@ -14,8 +14,8 @@ class RoleTags
 
     public function __construct(array $data)
     {
-        $this->botId = $data['bot_id'] ? new Snowflake($data['bot_id']) : null;
-        $this->integrationId = $data['integration_id'] ? new Snowflake($data['integration_id']) : null;
+        $this->botId = !empty($data['bot_id']) ? new Snowflake($data['bot_id']) : null;
+        $this->integrationId = !empty($data['integration_id']) ? new Snowflake($data['integration_id']) : null;
         $this->premiumSubscriber = $data['premium_subscriber'] ?? false;
     }
 

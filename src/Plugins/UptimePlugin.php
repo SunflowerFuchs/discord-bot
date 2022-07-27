@@ -23,7 +23,7 @@ class UptimePlugin extends BasePlugin
         // I should probably create a $bot->registerDmCommand function for this
         $this->getBot()->subscribeToEvent(Events::DM_MESSAGE_CREATE, function (Message $message) {
             $prefix = $this->getBot()->getPrefix();
-            if ($message->isCommand($prefix) && $message->getCommand($prefix) === 'uptime') {
+            if ($message->getCommand($prefix) === 'uptime') {
                 $this->showUptime($message);
             }
         });

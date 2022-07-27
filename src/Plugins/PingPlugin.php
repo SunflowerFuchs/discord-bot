@@ -22,7 +22,7 @@ class PingPlugin extends BasePlugin
         // I should probably create a $bot->registerDmCommand function for this
         $this->getBot()->subscribeToEvent(Events::DM_MESSAGE_CREATE, function (Message $message) {
             $prefix = $this->getBot()->getPrefix();
-            if ($message->isCommand($prefix) && $message->getCommand($prefix) === 'ping') {
+            if ($message->getCommand($prefix) === 'ping') {
                 $this->ping($message);
             }
         });
@@ -36,7 +36,7 @@ class PingPlugin extends BasePlugin
         }
 
         $params = $msg->getCommandParams($this->getBot()->getPrefix());
-        if ($params[0] === 'long') {
+        if (isset($params[0]) && $params[0] === 'long') {
             return $this->sendLongPing($channelId, $msg->getAuthor());
         } else {
             return $this->sendPing($channelId);

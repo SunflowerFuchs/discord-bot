@@ -158,8 +158,13 @@ class EventManager
             $event = self::EVENT_ALIASES[$event];
         }
 
-        foreach ($this->subscribers[$event] ?? [] as $handler) {
-            $parameters = $this->resolveParameters($event, $message);
+        // Exit early to save on processing
+        if (empty($this->subscribers[$event])) {
+            return;
+        }
+
+        $parameters = $this->resolveParameters($event, $message);
+        foreach ($this->subscribers[$event] as $handler) {
             call_user_func($handler, ...$parameters);
         }
     }

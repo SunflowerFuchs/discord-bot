@@ -11,8 +11,8 @@ use Psr\Log\LoggerInterface;
 use Ratchet\Client\Connector;
 use Ratchet\Client\WebSocket;
 use Ratchet\RFC6455\Messaging\Message as RatchetMessage;
-use React\EventLoop\Factory;
-use React\EventLoop\StreamSelectLoop;
+use React\EventLoop\Loop;
+use React\EventLoop\LoopInterface;
 use React\EventLoop\TimerInterface;
 use SunflowerFuchs\DiscordBot\Api\Constants\Events;
 use SunflowerFuchs\DiscordBot\Api\Objects\AllowedMentions;
@@ -56,7 +56,7 @@ class Bot implements LoggerAwareInterface
     protected bool $reconnect = false;
     protected bool $waitingForHeartbeatACK = false;
     protected EventManager $eventManager;
-    protected StreamSelectLoop $loop;
+    protected LoopInterface $loop;
     protected LoggerInterface $logger;
     protected ?WebSocket $websocket = null;
     protected ?TimerInterface $heartbeatTimer = null;
@@ -75,7 +75,7 @@ class Bot implements LoggerAwareInterface
     {
         $this->logger = new EchoLogger();
         $this->eventManager = new EventManager();
-        $this->loop = Factory::create();
+        $this->loop = Loop::get();
 
         $this->setOptions($options);
     }

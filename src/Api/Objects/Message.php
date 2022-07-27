@@ -408,11 +408,29 @@ class Message
     }
 
     /**
-     * @return User[]
+     * @return UserMention[]
      */
     public function getMentions(): array
     {
         return $this->mentions;
+    }
+
+    /**
+     * Returns whether the given userId is being mentioned in this message
+     * @param Snowflake $userId
+     * @return bool
+     *
+     * @noinspection PhpNonStrictObjectEqualityInspection
+     */
+    public function mentionsUser(Snowflake $userId): bool
+    {
+        foreach ($this->mentions as $mention) {
+            if ($mention->getUser()->getId() == $userId) {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     /**

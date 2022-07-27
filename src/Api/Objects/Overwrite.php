@@ -20,8 +20,9 @@ class Overwrite
     {
         $this->id = new Snowflake($data['id']);
         $this->type = intval($data['type']);
-        $this->allow = $data['allow'];
-        $this->deny = $data['deny'];
+        // I could probably deal with these as integers, but for now I just deal with them according to the api docs
+        $this->allow = (string)$data['allow'];
+        $this->deny = (string)$data['deny'];
     }
 
     /**

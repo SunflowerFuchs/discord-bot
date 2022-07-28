@@ -1,4 +1,4 @@
 [tests]
 token = "ABCDEF"
 prefix = "!"
-debug = true
+loglevel = notice

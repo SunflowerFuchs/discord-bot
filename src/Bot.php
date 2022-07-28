@@ -284,9 +284,9 @@ class Bot implements LoggerAwareInterface
         string $content,
         Snowflake $channelId,
         AllowedMentions $allowedMentions = null
-    ): ?Message {
+    ): Message|string {
         $message = Message::create($this->getApiClient(), $channelId, $content, $allowedMentions);
-        if (!$message) {
+        if (!$message instanceof Message) {
             $this->logger->warning("Sending message to channel ${channelId} failed");
         }
         return $message;

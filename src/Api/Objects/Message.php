@@ -203,7 +203,7 @@ class Message
      * @param string[] $files Array of file paths
      * @param Attachment[] $attachments
      * @param bool $suppressEmbeds
-     * @return ?Message
+     * @return Message|string The message, or the error message
      * @throws GuzzleException
      */
     public static function create(
@@ -219,7 +219,7 @@ class Message
         array $files = [],
         array $attachments = [],
         bool $suppressEmbeds = false
-    ): ?Message {
+    ): Message|string {
         $jsonData = [];
         // Main content
         if (!empty($content)) {
@@ -276,7 +276,7 @@ class Message
 
         $res = $apiClient->post("channels/${channelId}/messages", $options);
         if ($res->getStatusCode() !== 200) {
-            return null;
+            return $res->getBody()->getContents();
         }
 
         $msgData = json_decode($res->getBody()->getContents(), true);

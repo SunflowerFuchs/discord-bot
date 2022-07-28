@@ -12,7 +12,7 @@ use SunflowerFuchs\DiscordBot\Api\Objects\Emoji;
 use SunflowerFuchs\DiscordBot\Api\Objects\Message;
 use SunflowerFuchs\DiscordBot\Api\Objects\Reaction;
 use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
-use TikTok\Driver\SnaptikDriver;
+use TikTok\Driver\NativeDriver;
 use TikTok\TikTokDownloader;
 
 class TiktokPlugin extends BasePlugin
@@ -24,7 +24,8 @@ class TiktokPlugin extends BasePlugin
 
     public function __construct()
     {
-        $this->downloader = new TikTokDownloader(new SnaptikDriver());
+        // NativeDriver is much smaller than SnaptikDriver, otherwise I'd prefer to use that
+        $this->downloader = new TikTokDownloader(new NativeDriver());
         $this->guzzleClient = new Client();
     }
 
@@ -79,8 +80,11 @@ class TiktokPlugin extends BasePlugin
             );
             unlink($tempFile);
 
-            if (!$tiktokMsg) {
-                $this->getBot()->getLogger()->warning('Could not upload tiktok', ['url' => $videoUrl]);
+            if (!$tiktokMsg instanceof Message) {
+                $this->getBot()->getLogger()->warning('Could not upload tiktok', [
+                    'url' => $videoUrl,
+                    'error' => $tiktokMsg
+                ]);
                 $this->sendMessage('Could not upload tiktok, sorry', $message->getChannelId());
                 return false;
             }
@@ -98,6 +102,9 @@ class TiktokPlugin extends BasePlugin
                 ]);
                 return true;
             }
+
+            // And now we can delete the original message
+            Message::delete($this->getBot()->getApiClient(), $message->getId(), $message->getChannelId());
 
             return true;
         } catch (Exception $e) {

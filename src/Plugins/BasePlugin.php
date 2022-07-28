@@ -8,6 +8,7 @@ use LogicException;
 use ReflectionClass;
 use RuntimeException;
 use SunflowerFuchs\DiscordBot\Api\Objects\AllowedMentions;
+use SunflowerFuchs\DiscordBot\Api\Objects\Message;
 use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
 use SunflowerFuchs\DiscordBot\Bot;
 
@@ -61,6 +62,6 @@ abstract class BasePlugin
 
     protected function sendMessage(string $message, Snowflake $channelId, AllowedMentions $allowedMentions = null): bool
     {
-        return $this->getBot()->sendMessage($message, $channelId, $allowedMentions) !== null;
+        return $this->getBot()->sendMessage($message, $channelId, $allowedMentions) instanceof Message;
     }
 }

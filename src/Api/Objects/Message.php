@@ -386,7 +386,7 @@ class Message
         if (!$this->isCommand($prefix)) {
             return '';
         }
-        return substr(explode(' ', trim($this->getContent()))[0], strlen($prefix));
+        return explode(' ', substr(trim($this->getContent()), strlen($prefix)))[0];
     }
 
     /**

@@ -8,6 +8,7 @@ namespace SunflowerFuchs\DiscordBot\Api\Objects;
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
 use GuzzleHttp\Psr7\Utils;
+use SunflowerFuchs\DiscordBot\Api\Constants\Headers;
 use SunflowerFuchs\DiscordBot\Api\Constants\MessageFlag;
 use SunflowerFuchs\DiscordBot\Api\Constants\MessageType;
 use SunflowerFuchs\DiscordBot\Helpers\ComponentFactory;
@@ -202,7 +203,7 @@ class Message
      * @param string[] $files Array of file paths
      * @param Attachment[] $attachments
      * @param bool $suppressEmbeds
-     * @return bool
+     * @return ?Message
      * @throws GuzzleException
      */
     public static function create(
@@ -218,7 +219,7 @@ class Message
         array $files = [],
         array $attachments = [],
         bool $suppressEmbeds = false
-    ): bool {
+    ): ?Message {
         $jsonData = [];
         // Main content
         if (!empty($content)) {
@@ -243,7 +244,7 @@ class Message
         }
 
         // Additional data
-        $jsonData['allowedMentions'] = ($allowedMentions ?? new AllowedMentions())->toArray();
+        $jsonData['allowed_mentions'] = ($allowedMentions ?? new AllowedMentions())->toArray();
         if (!empty($components)) {
             $jsonData['components'] = array_map(fn(Component $component) => $component->toArray(), $components);
         }
@@ -274,7 +275,33 @@ class Message
         ];
 
         $res = $apiClient->post("channels/${channelId}/messages", $options);
-        return $res->getStatusCode() === 200;
+        if ($res->getStatusCode() !== 200) {
+            return null;
+        }
+
+        $msgData = json_decode($res->getBody()->getContents(), true);
+        return new Message($msgData);
+    }
+
+    public static function delete(Client $client, Snowflake $messageId, Snowflake $channelId, string $reason = ''): bool
+    {
+        $options = [];
+        if (!empty($reason)) {
+            $options['headers'] = [Headers::AUDIT_LOG_REASON => $reason];
+        }
+
+        $res = $client->delete("channels/${channelId}/messages/${messageId}", $options);
+        return $res->getStatusCode() === 204;
+    }
+
+    public static function loadById(Client $client, Snowflake $messageId, Snowflake $channelId): ?self
+    {
+        $res = $client->get("channels/${channelId}/messages/${messageId}");
+        if ($res->getStatusCode() === 200) {
+            return new static(json_decode($res->getBody()->getContents(), true));
+        }
+
+        return null;
     }
 
     /**

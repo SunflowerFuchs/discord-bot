@@ -6,6 +6,8 @@ declare(strict_types=1);
 namespace SunflowerFuchs\DiscordBot\Api\Objects;
 
 
+use GuzzleHttp\Client;
+
 class Reaction
 {
     /**
@@ -26,6 +28,13 @@ class Reaction
         $this->count = $data['count'];
         $this->me = $data['me'];
         $this->emoji = new Emoji($data['emoji']);
+    }
+
+    public static function create(Client $apiClient, Snowflake $channelId, Snowflake $messageId, string $emoji)
+    {
+        $emoji = urlencode($emoji);
+        $res = $apiClient->put("channels/${channelId}/messages/${messageId}/reactions/${emoji}/@me");
+        return $res->getStatusCode() === 204;
     }
 
     /**

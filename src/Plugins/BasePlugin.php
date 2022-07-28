@@ -61,6 +61,6 @@ abstract class BasePlugin
 
     protected function sendMessage(string $message, Snowflake $channelId, AllowedMentions $allowedMentions = null): bool
     {
-        return $this->getBot()->sendMessage($message, $channelId, $allowedMentions);
+        return $this->getBot()->sendMessage($message, $channelId, $allowedMentions) !== null;
     }
 }

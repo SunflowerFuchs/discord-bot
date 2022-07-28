@@ -33,13 +33,15 @@ class AdminPermissionPlugin extends BasePlugin
 
         if (empty($roles) && empty($users)) {
             $prefix = $this->getBot()->getPrefix();
-            return $this->sendMessage(
+            $this->sendMessage(
                 "No users/roles given. Syntax: ${prefix}op @role|@user [@role|@user] ...",
                 $message->getChannelId()
             );
+            return true;
         }
 
-        return $this->sendMessage('Permissions updated.', $message->getChannelId());
+        $this->sendMessage('Permissions updated.', $message->getChannelId());
+        return true;
     }
 
     public function deop(Message $message): bool
@@ -60,13 +62,15 @@ class AdminPermissionPlugin extends BasePlugin
 
         if (empty($roles) && empty($users)) {
             $prefix = $this->getBot()->getPrefix();
-            return $this->sendMessage(
+            $this->sendMessage(
                 "No users/roles given. Syntax: ${prefix}deop @role|@user [@role|@user] ...",
                 $message->getChannelId()
             );
+            return true;
         }
 
-        return $this->sendMessage('Permissions updated.', $message->getChannelId());
+        $this->sendMessage('Permissions updated.', $message->getChannelId());
+        return true;
     }
 
     public function listAdmins(Message $message): bool
@@ -85,12 +89,14 @@ class AdminPermissionPlugin extends BasePlugin
             $permissionManager->listAdminRoles($message->getGuildId())
         );
         if (empty($adminMentions) && empty($roleMentions)) {
-            return $this->sendMessage('Currently no admins defined.', $message->getChannelId());
+            $this->sendMessage('Currently no admins defined.', $message->getChannelId());
+            return true;
         }
 
-        return $this->sendMessage(
+        $this->sendMessage(
             "Current admins:\n" . implode("\n", $adminMentions)
             . "\n\nCurrent admin roles:\n" . implode("\n", $roleMentions),
             $message->getChannelId());
+        return true;
     }
 }

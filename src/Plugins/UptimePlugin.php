@@ -7,6 +7,7 @@ namespace SunflowerFuchs\DiscordBot\Plugins;
 
 
 use DateTime;
+use Exception;
 use SunflowerFuchs\DiscordBot\Api\Constants\Events;
 use SunflowerFuchs\DiscordBot\Api\Objects\Message;
 
@@ -14,6 +15,9 @@ class UptimePlugin extends BasePlugin
 {
     protected DateTime $initTime;
 
+    /**
+     * @throws Exception
+     */
     public function init()
     {
         $this->initTime = new DateTime();
@@ -35,7 +39,7 @@ class UptimePlugin extends BasePlugin
         $uptime = (new DateTime())->diff($this->initTime);
         $strUptime = str_pad((string)($uptime->days ?: 0), 3, '0', STR_PAD_LEFT) . $uptime->format(':%H:%I:%S');
 
-        return $this->sendMessage("I've been up and running since ${startTime} (for ${strUptime})",
-            $message->getChannelId());
+        $this->sendMessage("I've been up and running since ${startTime} (for ${strUptime})", $message->getChannelId());
+        return true;
     }
 }

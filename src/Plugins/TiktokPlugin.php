@@ -29,6 +29,9 @@ class TiktokPlugin extends BasePlugin
         $this->guzzleClient = new Client();
     }
 
+    /**
+     * @throws Exception
+     */
     public function init()
     {
         $this->getBot()->subscribeToEvent(Events::MESSAGE_CREATE, [$this, 'checkPostedMessage']);
@@ -65,8 +68,15 @@ class TiktokPlugin extends BasePlugin
                     'url' => $videoUrl,
                     'error' => $res->getBody()->getContents()
                 ]);
-                $this->sendMessage('Could not download tiktok, sorry', $message->getChannelId());
+
+                $this->sendSelfDestructingMessage('Could not download tiktok, sorry', $message->getChannelId());
                 return false;
+            }
+            $filesize = filesize($tempFile);
+            if ($filesize > 8388284) {
+                unlink($tempFile);
+                $this->sendSelfDestructingMessage('Tiktok was too big to embed, sorry', $message->getChannelId());
+                return true;
             }
 
             // send the file as a discord attachment
@@ -85,7 +95,7 @@ class TiktokPlugin extends BasePlugin
                     'url' => $videoUrl,
                     'error' => $tiktokMsg
                 ]);
-                $this->sendMessage('Could not upload tiktok, sorry', $message->getChannelId());
+                $this->sendSelfDestructingMessage('Could not upload tiktok, sorry', $message->getChannelId());
                 return false;
             }
 
@@ -111,11 +121,13 @@ class TiktokPlugin extends BasePlugin
             if (isset($tempFile) && is_file($tempFile)) {
                 unlink($tempFile);
             }
-            $this->getBot()->getLogger()->notice('Error while downloading tiktok', [
+            $this->getBot()->getLogger()->notice('Exception while downloading tiktok', [
                 'url' => $videoUrl,
                 'error' => $e->getMessage()
             ]);
-            $this->sendMessage('Could not download tiktok, sorry', $message->getChannelId());
+
+            $this->sendSelfDestructingMessage('Could not download tiktok, sorry',
+                $message->getChannelId());
             return true;
         }
     }

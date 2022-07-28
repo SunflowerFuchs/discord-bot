@@ -6,6 +6,7 @@ declare(strict_types=1);
 namespace SunflowerFuchs\DiscordBot\Plugins;
 
 
+use Exception;
 use SunflowerFuchs\DiscordBot\Api\Constants\Events;
 use SunflowerFuchs\DiscordBot\Api\Objects\AllowedMentions;
 use SunflowerFuchs\DiscordBot\Api\Objects\Message;
@@ -14,6 +15,9 @@ use SunflowerFuchs\DiscordBot\Api\Objects\User;
 
 class PingPlugin extends BasePlugin
 {
+    /**
+     * @throws Exception
+     */
     public function init()
     {
         $this->getBot()->registerCommand('ping', [$this, 'ping']);
@@ -45,7 +49,8 @@ class PingPlugin extends BasePlugin
 
     protected function sendPing(Snowflake $channelId): bool
     {
-        return $this->sendMessage('Pong', $channelId);
+        $this->sendMessage('Pong', $channelId);
+        return true;
     }
 
     protected function sendLongPing(Snowflake $channelId, User $author): bool
@@ -55,6 +60,7 @@ class PingPlugin extends BasePlugin
         $response .= PHP_EOL . "We're currently vibing in <#${channelId}>.";
         $allowedMentions = new AllowedMentions();
         $allowedMentions->allowUser($userId);
-        return $this->sendMessage($response, $channelId, $allowedMentions);
+        $this->sendMessage($response, $channelId, $allowedMentions);
+        return true;
     }
 }

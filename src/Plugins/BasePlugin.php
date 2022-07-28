@@ -14,6 +14,7 @@ use SunflowerFuchs\DiscordBot\Bot;
 
 abstract class BasePlugin
 {
+    private const DEFAULT_TIMEOUT = 7.0;
     private ?Bot $bot = null;
 
     abstract public function init();
@@ -60,8 +61,29 @@ abstract class BasePlugin
         throw new RuntimeException(sprintf('Could not create dataDir for plugin "%s"', $className));
     }
 
-    protected function sendMessage(string $message, Snowflake $channelId, AllowedMentions $allowedMentions = null): bool
-    {
-        return $this->getBot()->sendMessage($message, $channelId, $allowedMentions) instanceof Message;
+    protected function sendMessage(
+        string $message,
+        Snowflake $channelId,
+        AllowedMentions $allowedMentions = null
+    ): Message|string {
+        return $this->getBot()->sendMessage($message, $channelId, $allowedMentions);
+    }
+
+    protected function sendSelfDestructingMessage(
+        string $message,
+        Snowflake $channelId,
+        float $timeout = self::DEFAULT_TIMEOUT,
+        AllowedMentions $allowedMentions = null
+    ): Message|string {
+        $responseMsg = $this->getBot()->sendMessage($message, $channelId, $allowedMentions);
+        if ($responseMsg instanceof Message) {
+            $this->getBot()->getLoop()->addTimer($timeout, fn() => Message::delete(
+                $this->getBot()->getApiClient(),
+                $responseMsg->getId(),
+                $responseMsg->getChannelId()
+            ));
+        }
+
+        return $responseMsg;
     }
 }

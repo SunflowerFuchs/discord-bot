@@ -160,6 +160,11 @@ class Bot implements LoggerAwareInterface
         return $this->permissionManager;
     }
 
+    public function getLoop(): LoopInterface
+    {
+        return $this->loop;
+    }
+
     protected function initEventManager(): void
     {
         $this->eventManager->subscribe(Events::READY, function (string $sessionId, User $user) {
@@ -215,9 +220,12 @@ class Bot implements LoggerAwareInterface
         }
     }
 
-    public function subscribeToEvent(string $event, callable $handler): void
+    /**
+     * @throws Exception
+     */
+    public function subscribeToEvent(string $event, callable $handler): string
     {
-        $this->eventManager->subscribe($event, $handler);
+        return $this->eventManager->subscribe($event, $handler);
     }
 
     public function registerPlugin(BasePlugin $plugin): bool
@@ -424,7 +432,7 @@ class Bot implements LoggerAwareInterface
             // Disallowed intent(s): You sent a disallowed intent for a Gateway Intent. You may have tried to specify an intent that you have not enabled or are not approved for.
             4014 => false,
         ];
-        if (!$recoverableErrorCodes[$errorCode] ?? true) {
+        if (!isset($recoverableErrorCodes[$errorCode]) || $recoverableErrorCodes[$errorCode]) {
             $this->reconnectGateway();
             return;
         }

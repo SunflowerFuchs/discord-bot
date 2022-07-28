@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace SunflowerFuchs\DiscordBot\Helpers;
 
+use Exception;
 use SunflowerFuchs\DiscordBot\Api\Constants\ChannelType;
 use SunflowerFuchs\DiscordBot\Api\Constants\Events;
 use SunflowerFuchs\DiscordBot\Api\Objects\Channel;
@@ -138,11 +139,25 @@ class EventManager
      *
      * @param string $event The event to subscribe to, e.g. {@see EventManager::MESSAGE_CREATE}
      * @param callable $handler
+     * @return string the id of the event subscription
+     * @throws Exception
      */
-    public function subscribe(string $event, callable $handler)
+    public function subscribe(string $event, callable $handler): string
     {
+        $eventId = bin2hex(random_bytes(12));
         $this->subscribers[$event] ??= [];
-        $this->subscribers[$event][] = $handler;
+        $this->subscribers[$event][$eventId] = $handler;
+        return $eventId;
+    }
+
+    public function unsubscribe(string $eventId): void
+    {
+        foreach ($this->subscribers as $event => $subscribers) {
+            if (isset($subscribers[$eventId])) {
+                unset($subscribers[$eventId]);
+                return;
+            }
+        }
     }
 
     /**
@@ -152,7 +167,7 @@ class EventManager
      * @param array $message
      * @param Bot $bot
      */
-    public function publish(string $event, array $message, Bot $bot)
+    public function publish(string $event, array $message, Bot $bot): void
     {
         if (isset(self::EVENT_ALIASES[$event]) && $this->isDmEvent($event, $message, $bot)) {
             $event = self::EVENT_ALIASES[$event];

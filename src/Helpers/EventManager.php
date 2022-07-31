@@ -150,14 +150,15 @@ class EventManager
         return $eventId;
     }
 
-    public function unsubscribe(string $eventId): void
+    public function unsubscribe(string $eventId): bool
     {
         foreach ($this->subscribers as $event => $subscribers) {
-            if (isset($subscribers[$eventId])) {
-                unset($subscribers[$eventId]);
-                return;
+            if (isset($this->subscribers[$event][$eventId])) {
+                unset($this->subscribers[$event][$eventId]);
+                return true;
             }
         }
+        return false;
     }
 
     /**

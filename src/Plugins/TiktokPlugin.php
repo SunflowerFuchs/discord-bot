@@ -34,8 +34,8 @@ class TiktokPlugin extends BasePlugin
      */
     public function init()
     {
-        $this->getBot()->subscribeToEvent(Events::MESSAGE_CREATE, [$this, 'checkPostedMessage']);
-        $this->getBot()->subscribeToEvent(Events::MESSAGE_REACTION_ADD, [$this, 'checkReaction']);
+        $this->subscribeToEvent(Events::MESSAGE_CREATE, [$this, 'checkPostedMessage']);
+        $this->subscribeToEvent(Events::MESSAGE_REACTION_ADD, [$this, 'checkReaction']);
     }
 
     public function checkPostedMessage(Message $message): bool

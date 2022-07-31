@@ -25,7 +25,7 @@ class UptimePlugin extends BasePlugin
 
         // Enable asking for uptime via DM
         // I should probably create a $bot->registerDmCommand function for this
-        $this->getBot()->subscribeToEvent(Events::DM_MESSAGE_CREATE, function (Message $message) {
+        $this->subscribeToEvent(Events::DM_MESSAGE_CREATE, function (Message $message) {
             $prefix = $this->getBot()->getPrefix();
             if ($message->getCommand($prefix) === 'uptime') {
                 $this->showUptime($message);

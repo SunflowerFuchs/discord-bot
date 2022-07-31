@@ -89,9 +89,6 @@ class PermissionManager
         return empty($this->db->error);
     }
 
-    /**
-     * @noinspection PhpNonStrictObjectEqualityInspection
-     */
     protected function memberHasPermission(Snowflake $guildId, GuildMember $guildMember, string $permission): bool
     {
         if ($guildMember->getUser() === null) {

@@ -220,12 +220,9 @@ class Bot implements LoggerAwareInterface
         }
     }
 
-    /**
-     * @throws Exception
-     */
-    public function subscribeToEvent(string $event, callable $handler): string
+    public function getEventManager(): EventManager
     {
-        return $this->eventManager->subscribe($event, $handler);
+        return $this->eventManager;
     }
 
     public function registerPlugin(BasePlugin $plugin): bool

@@ -8,6 +8,7 @@ namespace SunflowerFuchs\DiscordBot\Api\Objects;
 
 use GuzzleHttp\Client;
 use GuzzleHttp\Exception\GuzzleException;
+use Spatie\Emoji\Emoji as EmojiLib;
 use SunflowerFuchs\DiscordBot\Api\Constants\Headers;
 use SunflowerFuchs\DiscordBot\Bot;
 
@@ -192,6 +193,16 @@ class Emoji
 
         $res = $apiClient->delete("guilds/${guildId}/emojis/${emojiId}", $options);
         return $res->getStatusCode() === 204;
+    }
+
+    public static function isStandardEmoji(string $unicodeEmoji): bool
+    {
+        static $flipped = null;
+        if (!$flipped) {
+            $flipped = array_flip(EmojiLib::all());
+        }
+
+        return isset($flipped[$unicodeEmoji]);
     }
 
     /**

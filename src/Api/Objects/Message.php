@@ -450,8 +450,6 @@ class Message
      * Returns whether the given userId is being mentioned in this message
      * @param Snowflake $userId
      * @return bool
-     *
-     * @noinspection PhpNonStrictObjectEqualityInspection
      */
     public function mentionsUser(Snowflake $userId): bool
     {

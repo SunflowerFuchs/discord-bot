@@ -6,6 +6,7 @@ use Exception;
 use GuzzleHttp\Client;
 use GuzzleHttp\Psr7\Uri;
 use InvalidArgumentException;
+use Spatie\Emoji\Emoji as EmojiLib;
 use SunflowerFuchs\DiscordBot\Api\Constants\Events;
 use SunflowerFuchs\DiscordBot\Api\Objects\AllowedMentions;
 use SunflowerFuchs\DiscordBot\Api\Objects\Emoji;
@@ -17,7 +18,7 @@ use TikTok\TikTokDownloader;
 
 class TiktokPlugin extends BasePlugin
 {
-    protected const REMOVE_EMOJI = '❎';
+    protected const REMOVE_EMOJI = EmojiLib::CHARACTER_CROSS_MARK_BUTTON;
 
     protected TikTokDownloader $downloader;
     protected Client $guzzleClient;

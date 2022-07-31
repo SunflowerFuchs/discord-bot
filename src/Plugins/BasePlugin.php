@@ -11,7 +11,9 @@ use ReflectionClass;
 use RuntimeException;
 use SunflowerFuchs\DiscordBot\Api\Constants\Events;
 use SunflowerFuchs\DiscordBot\Api\Objects\AllowedMentions;
+use SunflowerFuchs\DiscordBot\Api\Objects\Emoji;
 use SunflowerFuchs\DiscordBot\Api\Objects\Message;
+use SunflowerFuchs\DiscordBot\Api\Objects\Reaction;
 use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
 use SunflowerFuchs\DiscordBot\Bot;
 
@@ -142,5 +144,55 @@ abstract class BasePlugin
         $timer = $this->getBot()->getLoop()->addTimer($timeout, fn() => $this->unsubscribeFromEvent($subscriptionId));
 
         return $return;
+    }
+
+    /**
+     * Add a reaction to a message, and (if given) call a callback when someone adds to that reaction
+     *
+     * Note: Due to technical limitations this function only works when there is at least one subscriber
+     * for {@see Events::MESSAGE_REACTION_ADD}, because the event only gets sent to the bot if that is the case.
+     *
+     * @param string $emoji
+     * @param Snowflake $messageId
+     * @param Snowflake $channelId
+     * @param callable|null $onReaction
+     * @return bool
+     * @throws Exception
+     */
+    protected function addReaction(
+        string $emoji,
+        Snowflake $messageId,
+        Snowflake $channelId,
+        callable $onReaction = null
+    ): bool {
+        $success = Reaction::create(
+            $this->getBot()->getApiClient(),
+            $channelId,
+            $messageId,
+            $emoji
+        );
+
+        if ($success && $onReaction !== null) {
+            $this->subscribeToEvent(
+                Events::MESSAGE_REACTION_ADD,
+                function (array $data) use ($messageId, $emoji, $onReaction) {
+                    $reactionMessageId = new Snowflake($data['message_id']);
+                    $reactionEmoji = new Emoji($data['emoji']);
+
+                    $emojiName = $reactionEmoji->getName();
+                    $emojiId = $reactionEmoji->getId();
+                    $isSameEmoji = Emoji::isStandardEmoji($emoji)
+                        ? ($reactionEmoji->getId() === null && $emoji === $reactionEmoji->getName())
+                        : ($emoji === "<a:${emojiName}:${emojiId}>" || $emoji === "<:${emojiName}:${emojiId}>");
+                    if ($reactionMessageId != $messageId || !$isSameEmoji) {
+                        return false;
+                    }
+
+                    return call_user_func($onReaction, $data);
+                }
+            );
+        }
+
+        return $success;
     }
 }

@@ -11,7 +11,6 @@ use SunflowerFuchs\DiscordBot\Api\Constants\Events;
 use SunflowerFuchs\DiscordBot\Api\Objects\AllowedMentions;
 use SunflowerFuchs\DiscordBot\Api\Objects\Emoji;
 use SunflowerFuchs\DiscordBot\Api\Objects\Message;
-use SunflowerFuchs\DiscordBot\Api\Objects\Reaction;
 use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
 use TikTok\Driver\NativeDriver;
 use TikTok\TikTokDownloader;
@@ -100,12 +99,7 @@ class TiktokPlugin extends BasePlugin
                 return false;
             }
 
-            $success = Reaction::create(
-                $this->getBot()->getApiClient(),
-                $message->getChannelId(),
-                $tiktokMsg->getId(),
-                self::REMOVE_EMOJI
-            );
+            $success = $this->addReaction(self::REMOVE_EMOJI, $tiktokMsg->getId(), $tiktokMsg->getChannelId());
             if (!$success) {
                 $this->getBot()->getLogger()->warning('Could not append reaction to message', [
                     'msg' => $tiktokMsg->getId(),

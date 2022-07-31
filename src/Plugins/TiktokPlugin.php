@@ -153,11 +153,7 @@ class TiktokPlugin extends BasePlugin
      */
     protected function getTempFile(string $extension = 'mp4'): string
     {
-        $dir = $this->getBot()->getDataDir() . 'tiktoks/';
-        if (!is_dir($dir) && !mkdir($dir, 0700, false)) {
-            throw new Exception('Could not create temp directory');
-        }
-
+        $dir = $this->getDataDir();
         $identifier = bin2hex(random_bytes(5));
         $extension = $extension ? ".${extension}" : '';
         return "${dir}${identifier}${extension}";

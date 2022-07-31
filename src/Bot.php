@@ -516,6 +516,9 @@ class Bot implements LoggerAwareInterface
         }
     }
 
+    /**
+     * @internal Should not be used by plugins, those have access to {@see BasePlugin::getDataDir()}
+     */
     public function getDataDir(): string
     {
         return $this->options['dataDir'];

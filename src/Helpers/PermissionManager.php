@@ -2,8 +2,11 @@
 
 namespace SunflowerFuchs\DiscordBot\Helpers;
 
-use Medoo\Medoo;
+use Exception;
 use PDO;
+use Pecee\Pixie\Connection;
+use Pecee\Pixie\Exceptions\DuplicateEntryException;
+use Pecee\Pixie\QueryBuilder\QueryBuilderHandler;
 use SunflowerFuchs\DiscordBot\Api\Objects\Guild;
 use SunflowerFuchs\DiscordBot\Api\Objects\GuildMember;
 use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
@@ -23,16 +26,15 @@ class PermissionManager
     protected const COL_ROLE_ID = 'role_id';
 
     protected Bot $bot;
-    protected Medoo $db;
+    protected QueryBuilderHandler $db;
 
     public function __construct(Bot $bot)
     {
         $this->bot = $bot;
-        $this->db = new Medoo([
-            'type' => 'sqlite',
+        $this->db = (new Connection('sqlite', [
+            'driver' => 'sqlite',
             'database' => $this->bot->getDataDir() . self::FILE_NAME,
-            'error' => PDO::ERRMODE_SILENT
-        ]);
+        ]))->getQueryBuilder();
 
         $this->initializeDatabase();
     }
@@ -43,13 +45,23 @@ class PermissionManager
             return false;
         }
 
-        $this->db->insert(self::TABLE_MEMBERS, [
-            self::COL_GUILD_ID => $guildId->toInt(),
-            self::COL_USER_ID => $guildMember->getUser()->getId()->toInt(),
-            self::COL_PERMISSION => $permission
-        ]);
+        try {
+            $this->db
+                ->table(self::TABLE_MEMBERS)
+                ->insert([
+                    self::COL_GUILD_ID => $guildId->toInt(),
+                    self::COL_USER_ID => $guildMember->getUser()->getId()->toInt(),
+                    self::COL_PERMISSION => $permission
+                ]);
+        } catch (DuplicateEntryException $e) {
+            // ignore duplicate call
+            return true;
+        } catch (Exception $e) {
+            $this->bot->getLogger()->error('Unexpected exception', [$e]);
+            return false;
+        }
 
-        return empty($this->db->error);
+        return true;
     }
 
     protected function denyMember(Snowflake $guildId, GuildMember $guildMember, string $permission): bool
@@ -58,35 +70,57 @@ class PermissionManager
             return false;
         }
 
-        $this->db->delete(self::TABLE_MEMBERS, [
-            self::COL_GUILD_ID => $guildId->toInt(),
-            self::COL_USER_ID => $guildMember->getUser()->getId()->toInt(),
-            self::COL_PERMISSION => $permission
-        ]);
+        try {
+            $this->db
+                ->table(self::TABLE_MEMBERS)
+                ->where(self::COL_GUILD_ID, '=', $guildId->toInt())
+                ->where(self::COL_USER_ID, '=', $guildMember->getUser()->getId()->toInt())
+                ->where(self::COL_PERMISSION, '=', $permission)
+                ->delete();
+        } catch (Exception $e) {
+            $this->bot->getLogger()->error('Unexpected exception', [$e]);
+            return false;
+        }
 
-        return empty($this->db->error);
+        return true;
     }
 
     protected function permitRole(Snowflake $guildId, Snowflake $roleId, string $permission): bool
     {
-        $this->db->insert(self::TABLE_ROLES, [
-            self::COL_GUILD_ID => $guildId->toInt(),
-            self::COL_ROLE_ID => $roleId->toInt(),
-            self::COL_PERMISSION => $permission
-        ]);
+        try {
+            $this->db
+                ->table(self::TABLE_ROLES)
+                ->insert([
+                    self::COL_GUILD_ID => $guildId->toInt(),
+                    self::COL_ROLE_ID => $roleId->toInt(),
+                    self::COL_PERMISSION => $permission
+                ]);
+        } catch (DuplicateEntryException $e) {
+            // ignore duplicate call
+            return true;
+        } catch (Exception $e) {
+            $this->bot->getLogger()->error('Unexpected exception', [$e]);
+            return false;
+        }
 
-        return empty($this->db->error);
+        return true;
     }
 
     protected function denyRole(Snowflake $guildId, Snowflake $roleId, string $permission): bool
     {
-        $this->db->delete(self::TABLE_ROLES, [
-            self::COL_GUILD_ID => $guildId->toInt(),
-            self::COL_ROLE_ID => $roleId->toInt(),
-            self::COL_PERMISSION => $permission
-        ]);
+        try {
+            $this->db
+                ->table(self::TABLE_ROLES)
+                ->where(self::COL_GUILD_ID, '=', $guildId->toInt())
+                ->where(self::COL_ROLE_ID, '=', $roleId->toInt())
+                ->where(self::COL_PERMISSION, '=', $permission)
+                ->delete();
+        } catch (Exception $e) {
+            $this->bot->getLogger()->error('Unexpected exception', [$e]);
+            return false;
+        }
 
-        return empty($this->db->error);
+        return true;
     }
 
     protected function memberHasPermission(Snowflake $guildId, GuildMember $guildMember, string $permission): bool
@@ -114,11 +148,12 @@ class PermissionManager
         // If the user wasn't found to have the permission assigned, check their roles too
         $roleIds = $guildMember->getRoles();
         if (!empty($roleIds)) {
-            return $this->db->has(self::TABLE_ROLES, [
-                self::COL_GUILD_ID => $guildId->toInt(),
-                self::COL_ROLE_ID => array_map(fn(Snowflake $roleId) => $roleId->toInt(), $roleIds),
-                self::COL_PERMISSION => $permission
-            ]);
+            return $this->db
+                    ->table(self::TABLE_ROLES)
+                    ->where(self::COL_GUILD_ID, '=', $guildId->toInt())
+                    ->where(self::COL_PERMISSION, '=', $permission)
+                    ->whereIn(self::COL_ROLE_ID, array_map(fn(Snowflake $roleId) => $roleId->toInt(), $roleIds))
+                    ->count() >= 1;
         }
 
         return false;
@@ -128,14 +163,16 @@ class PermissionManager
      * @param Snowflake $guildId
      * @param string $permission
      * @return Snowflake[]
-     * @noinspection PhpParamsInspection Medoo has weird params here
      */
     protected function listMembersWithPermission(Snowflake $guildId, string $permission): array
     {
-        $userIds = $this->db->select(self::TABLE_MEMBERS, self::COL_USER_ID, [
-            self::COL_GUILD_ID => $guildId->toInt(),
-            self::COL_PERMISSION => $permission
-        ]);
+        $userIds = $this->db
+            ->table(self::TABLE_MEMBERS)
+            ->select(self::COL_USER_ID)
+            ->where(self::COL_GUILD_ID, '=', $guildId->toInt())
+            ->where(self::COL_PERMISSION, '=', $permission)
+            ->setFetchMode(PDO::FETCH_COLUMN)
+            ->get();
 
         return array_map(fn(int $userId) => new Snowflake("$userId"), $userIds ?? []);
     }
@@ -144,60 +181,41 @@ class PermissionManager
      * @param Snowflake $guildId
      * @param string $permission
      * @return Snowflake[]
-     * @noinspection PhpParamsInspection Medoo has weird params here
      */
     protected function listRolesWithPermission(Snowflake $guildId, string $permission): array
     {
-        $roleIds = $this->db->select(self::TABLE_ROLES, self::COL_ROLE_ID, [
-            self::COL_GUILD_ID => $guildId->toInt(),
-            self::COL_PERMISSION => $permission
-        ]);
+        $roleIds = $this->db
+            ->table(self::TABLE_ROLES)
+            ->select(self::COL_ROLE_ID)
+            ->where(self::COL_GUILD_ID, '=', $guildId->toInt())
+            ->where(self::COL_PERMISSION, '=', $permission)
+            ->get();
 
-        return array_map(fn(int $roleId) => new Snowflake("$roleId"), $roleIds ?? []);
+        return array_map(fn(int $roleId) => new Snowflake("$roleId"), $roleIds);
     }
 
     protected function initializeDatabase(): void
     {
-        $this->db->create(self::TABLE_MEMBERS, [
-            self::COL_GUILD_ID => [
-                'INT',
-                'NOT NULL',
-            ],
-            self::COL_USER_ID => [
-                'INT',
-                'NOT NULL',
-            ],
-            self::COL_PERMISSION => [
-                'TEXT',
-                'NOT NULL',
-            ],
-            'PRIMARY KEY (' . implode(',', [self::COL_GUILD_ID, self::COL_USER_ID, self::COL_PERMISSION]) . ')'
-        ]);
-        if (!empty($this->db->error)) {
-            $this->bot->getLogger()->critical($this->db->error);
+        // Both tables share the same last columns, only the name and first column are different
+        $template = <<<'SQL'
+CREATE TABLE IF NOT EXISTS
+%1$s (
+    %2$s INT NOT NULL,
+    %3$s INT NOT NULL,
+    %4$s TEXT NOT NULL,
+    PRIMARY KEY (%2$s, %3$s, %4$s)
+)
+SQL;
+
+        try {
+            $tables = [[self::TABLE_MEMBERS, self::COL_USER_ID], [self::TABLE_ROLES, self::COL_ROLE_ID]];
+            foreach ($tables as [$table, $col]) {
+                $this->db->pdo()->exec(sprintf($template, $table, $col, self::COL_GUILD_ID, self::COL_PERMISSION));
+            }
+        } catch (Exception $e) {
+            $this->bot->getLogger()->critical('Unexpected exception', [$e]);
             $this->bot->stop();
             return;
-        }
-
-        $this->db->create(self::TABLE_ROLES, [
-            self::COL_GUILD_ID => [
-                'INT',
-                'NOT NULL',
-            ],
-            self::COL_ROLE_ID => [
-                'INT',
-                'NOT NULL',
-            ],
-            self::COL_PERMISSION => [
-                'TEXT',
-                'NOT NULL',
-            ],
-            'PRIMARY KEY (' . implode(',', [self::COL_GUILD_ID, self::COL_ROLE_ID, self::COL_PERMISSION]) . ')'
-        ]);
-
-        if (!empty($this->db->error)) {
-            $this->bot->getLogger()->critical($this->db->error);
-            $this->bot->stop();
         }
     }
 }

@@ -81,10 +81,10 @@ class Bot implements LoggerAwareInterface
         // Moved the OptionsResolver into its own class for readability
         $this->options = (new BotOptions())->resolve($options);
 
+        $this->loop = Loop::get();
         $this->logger = new EchoLogger($this->options['loglevel']);
         $this->eventManager = new EventManager();
         $this->permissionManager = new SimplePermissionManager($this);
-        $this->loop = Loop::get();
 
         // Filter out the token before logging, we don't want to print that
         $this->logger->debug(
@@ -351,9 +351,11 @@ class Bot implements LoggerAwareInterface
     {
         $this->removeHeartbeatTimer();
 
-        // Not sure if removing the listeners manually is necessary, but i do it here for cleanliness
-        $this->websocket->removeAllListeners();
-        $this->websocket->close($code, $reason);
+        if ($this->websocket) {
+            // Not sure if removing the listeners manually is necessary, but i do it here for cleanliness
+            $this->websocket->removeAllListeners();
+            $this->websocket->close($code, $reason);
+        }
         $this->loop->stop();
     }
 
@@ -528,10 +530,10 @@ class Bot implements LoggerAwareInterface
     {
         static $apiClient;
         return $apiClient ?? ($apiClient = new Client([
-                'base_uri' => 'https://discord.com/api/',
-                'headers' => $this->header,
-                'http_errors' => false,
-            ]));
+            'base_uri' => 'https://discord.com/api/',
+            'headers' => $this->header,
+            'http_errors' => false,
+        ]));
     }
 
     public function getUserId(): Snowflake

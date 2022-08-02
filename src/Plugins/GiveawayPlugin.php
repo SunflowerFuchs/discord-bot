@@ -2,7 +2,10 @@
 
 namespace SunflowerFuchs\DiscordBot\Plugins;
 
-use Medoo\Medoo;
+use Exception;
+use PDO;
+use Pecee\Pixie\Connection;
+use Pecee\Pixie\QueryBuilder\QueryBuilderHandler;
 use SunflowerFuchs\DiscordBot\Api\Objects\AllowedMentions;
 use SunflowerFuchs\DiscordBot\Api\Objects\Emoji;
 use SunflowerFuchs\DiscordBot\Api\Objects\Message;
@@ -10,25 +13,43 @@ use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
 
 class GiveawayPlugin extends BasePlugin
 {
-    protected Medoo $db;
+    protected const TABLE = 'giveaways';
+    protected const COL_ID = 'id';
+    protected const COL_DRAWING_DATE = 'drawing';
+    protected const COL_WINNINGS = 'winnings';
+    protected const COL_EMOJI = 'emoji';
+    protected const COL_GUILD_ID = 'guildId';
+    protected const COL_CHANNEL_ID = 'channelId';
+    protected const COL_MESSAGE_ID = 'messageId';
+
+    protected QueryBuilderHandler $db;
 
     public function init()
     {
-        // TODO: initialize Database
-        // $this->initDatabase();
+        $this->db = $this->initDatabase();
         $this->getBot()->registerCommand('giveaway', [$this, 'parseCommand']);
+
+        // TODO: listen to Event::MESSAGE_DELETE and stop the giveaway if the announcement gets deleted
+        // TODO: draw the winner
+        // TODO: allow multiple winners
     }
 
     public function parseCommand(Message $message): bool
     {
+        if (!$this->getBot()->getPermissionManager()->isAdmin($message->getGuildId(), $message->getMember())) {
+            return true;
+        }
+
         $params = $message->getCommandParams($this->getBot()->getPrefix());
         switch ($params[1] ?? '') {
             case 'start':
                 return $this->askForTime($message);
             case 'stop':
-                // TODO: implement stop
+                return $this->selectGiveawayToDelete($message);
+            case 'list':
+                return $this->listGiveaways($message);
             default:
-                $subcommands = ['start', 'stop'];
+                $subcommands = ['start', 'stop', 'list'];
                 $this->sendMessage("Invalid subcommand; Known subcommands:\n " . implode("\n ", $subcommands),
                     $message->getChannelId());
                 return true;
@@ -143,26 +164,37 @@ class GiveawayPlugin extends BasePlugin
 
             $emojiId = $emoji->getId();
             $emojiName = $emoji->getName();
-            $emojiString = "${emojiName}:${emojiId}";
+            $animatedFlag = $emoji->isAnimated() ? 'a' : '';
+            $emojiString = "<${animatedFlag}:${emojiName}:${emojiId}>";
         }
 
-        // TODO: store in db
-        // $this->addGiveawayEntry();
-        $success = $this->announceGiveaway($drawing, $winnings, $emojiString, $channelId);
+        $giveawayMessage = $this->announceGiveaway($drawing, $winnings, $emojiString, $channelId);
+        if (!$giveawayMessage instanceof Message) {
+            $this->sendMessage('An error occurred while announcing the giveaway, sorry', $message->getChannelId());
+            return false;
+        }
+
+        $success = $this->storeGiveaway(
+            $drawing,
+            $winnings,
+            $emojiString,
+            $channelId,
+            $message->getGuildId(),
+            $giveawayMessage->getId()
+        );
         if (!$success) {
-            $this->sendMessage('An error occurred while announcing the giveaway, sorry', $channelId);
+            $this->sendMessage('An error occurred while saving the giveaway, sorry', $message->getChannelId());
             return false;
         }
         return true;
     }
 
-    protected function announceGiveaway(int $drawing, string $winnings, string $emoji, Snowflake $channelId): bool
+    protected function announceGiveaway(int $drawing, string $winnings, string $emoji, Snowflake $channelId): ?Message
     {
-        $msgEmoji = Emoji::isStandardEmoji($emoji) ? $emoji : "<:${emoji}>";
         $giveawayMessage = <<<EOL
 It's giveaway time! @everyone
 We are giving away ${winnings}.
-React to this message with ${msgEmoji} to participate.
+React to this message with ${emoji} to participate.
 The winner will be drawn on <t:${drawing}>.
 Good luck!
 EOL;
@@ -171,10 +203,154 @@ EOL;
         $message = $this->sendMessage($giveawayMessage, $channelId, $allowedMention);
         if ($message instanceof Message) {
             if ($this->addReaction($emoji, $message->getId(), $channelId)) {
-                return true;
+                return $message;
             }
         }
 
-        return false;
+        return null;
+    }
+
+    protected function selectGiveawayToDelete(Message $message): bool
+    {
+        $giveaways = array_map(
+            fn(array $giveaway) => sprintf(
+                '%d: %s, <t:%d>, announced in <#%d>',
+                $giveaway[self::COL_ID],
+                $giveaway[self::COL_WINNINGS],
+                $giveaway[self::COL_DRAWING_DATE],
+                $giveaway[self::COL_CHANNEL_ID]),
+            $this->getGiveaways($message->getGuildId()));
+        if (empty($giveaways)) {
+            $this->sendMessage('There are currently no giveaways running', $message->getChannelId());
+            return true;
+        }
+
+        $this->sendMessageAndAwaitResponse(
+            "Which giveaway do you want to delete?\n " . implode("\n ", $giveaways),
+            $message->getChannelId(),
+            $message->getAuthor()->getId(),
+            function (Message $message) {
+                $id = intval($message->getContent());
+                $giveaways = $this->getGiveaways($message->getGuildId());
+                if (empty(array_filter($giveaways, fn(array $giveaway) => $giveaway[self::COL_ID] === $id))) {
+                    $this->sendMessage("Could not find giveaway", $message->getChannelId());
+                    return true;
+                }
+
+                $success = $this->deleteGiveaway($id);
+                $text = $success ? "Giveaway ${id} deleted" : 'Could not delete giveaway';
+                $this->sendMessage($text, $message->getChannelId());
+                return true;
+            }
+        );
+        return true;
+    }
+
+    protected function listGiveaways(Message $message): bool
+    {
+        $giveaways = $this->getGiveaways($message->getGuildId());
+        if (empty($giveaways)) {
+            $this->sendMessage('No giveaways currently running.', $message->getChannelId());
+            return true;
+        }
+
+        $prettyGiveaways = array_map(
+            function (array $giveaway) use ($message) {
+                $emoji = $giveaway[self::COL_EMOJI];
+                return sprintf(
+                    '%d: %s, <t:%d>, announced in <#%d> with %s',
+                    $giveaway[self::COL_ID],
+                    $giveaway[self::COL_WINNINGS],
+                    $giveaway[self::COL_DRAWING_DATE],
+                    $giveaway[self::COL_CHANNEL_ID],
+                    Emoji::isStandardEmoji($emoji) ? $emoji : "<:${emoji}>");
+            }, $giveaways);
+
+        $this->sendMessage(implode("\n", $prettyGiveaways), $message->getChannelId());
+        return true;
+    }
+
+    protected function initDatabase(): QueryBuilderHandler
+    {
+        $db = (new Connection('sqlite', [
+            'database' => $this->getDataDir() . 'giveaways.sqlite'
+        ]))->getQueryBuilder();
+
+        $db->query(sprintf(<<<'SQL'
+CREATE TABLE IF NOT EXISTS
+%s (
+    %s INTEGER PRIMARY KEY AUTOINCREMENT,
+    %s INTEGER NOT NULL,
+    %s TEXT NOT NULL,
+    %s TEXT NOT NULL,
+    %s INTEGER NOT NULL,
+    %s INTEGER NOT NULL,
+    %s INTEGER NOT NULL
+)
+SQL,
+                self::TABLE,
+                self::COL_ID,
+                self::COL_DRAWING_DATE,
+                self::COL_WINNINGS,
+                self::COL_EMOJI,
+                self::COL_CHANNEL_ID,
+                self::COL_GUILD_ID,
+                self::COL_MESSAGE_ID)
+        );
+
+        return $db;
+    }
+
+    protected function storeGiveaway(
+        int $drawing,
+        string $winnings,
+        string $emoji,
+        Snowflake $channelId,
+        Snowflake $guildId,
+        Snowflake $messageId
+    ): bool {
+        try {
+            $this->db
+                ->table(self::TABLE)
+                ->insert([
+                    self::COL_DRAWING_DATE => $drawing,
+                    self::COL_WINNINGS => $winnings,
+                    self::COL_EMOJI => $emoji,
+                    self::COL_CHANNEL_ID => $channelId->toInt(),
+                    self::COL_GUILD_ID => $guildId->toInt(),
+                    self::COL_MESSAGE_ID => $messageId->toInt()
+                ]);
+        } catch (Exception $e) {
+            $this->getBot()->getLogger()->error('Unexpected exception', [$e]);
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function deleteGiveaway(int $giveawayId): bool
+    {
+        try {
+            $this->db
+                ->table(self::TABLE)
+                ->where(self::COL_ID, '=', $giveawayId)
+                ->delete();
+        } catch (Exception $e) {
+            $this->getBot()->getLogger()->error('Unexpected exception', [$e]);
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function getGiveaways(Snowflake $guildId = null): array
+    {
+        $query = $this->db->table(self::TABLE);
+        if ($guildId !== null) {
+            $query = $query->where(self::COL_GUILD_ID, '=', $guildId->toInt());
+        }
+        return $query
+            ->setFetchMode(PDO::FETCH_ASSOC)
+            ->get();
     }
 }

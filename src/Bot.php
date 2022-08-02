@@ -292,7 +292,7 @@ class Bot implements LoggerAwareInterface
     ): Message|string {
         $message = Message::create($this->getApiClient(), $channelId, $content, $allowedMentions);
         if (!$message instanceof Message) {
-            $this->logger->warning("Sending message to channel ${channelId} failed");
+            $this->logger->warning("Sending message to channel ${channelId} failed", ['error' => $message]);
         }
         return $message;
     }

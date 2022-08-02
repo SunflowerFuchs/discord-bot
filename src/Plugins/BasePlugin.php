@@ -165,6 +165,14 @@ abstract class BasePlugin
         Snowflake $channelId,
         callable $onReaction = null
     ): bool {
+        // If the emoji is a custom emoji, try to normalize it
+        if (!Emoji::isStandardEmoji($emoji)) {
+            if (str_starts_with($emoji, '<')) {
+                preg_match('/^<a?:(\w+:\d+)>$/', $emoji, $matches);
+                $emoji = $matches[1] ?? $emoji;
+            }
+        }
+
         $success = Reaction::create(
             $this->getBot()->getApiClient(),
             $channelId,

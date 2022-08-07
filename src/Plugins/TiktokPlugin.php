@@ -14,10 +14,13 @@ use SunflowerFuchs\DiscordBot\Api\Objects\Message;
 use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
 use TikTok\Driver\NativeDriver;
 use TikTok\TikTokDownloader;
+use TypeError;
 
 class TiktokPlugin extends BasePlugin
 {
     protected const REMOVE_EMOJI = EmojiLib::CHARACTER_CROSS_MARK_BUTTON;
+    protected const MAX_RETRIES = 3;
+    protected const RETRY_DELAY = 3;
 
     protected TikTokDownloader $downloader;
     protected Client $guzzleClient;
@@ -38,7 +41,7 @@ class TiktokPlugin extends BasePlugin
         $this->subscribeToEvent(Events::MESSAGE_REACTION_ADD, [$this, 'checkReaction']);
     }
 
-    public function checkPostedMessage(Message $message): bool
+    public function checkPostedMessage(Message $message, int $retries = 0): bool
     {
         if (!$message->isUserMessage()) {
             // Posted via webhook/bot? don't do anything
@@ -60,8 +63,25 @@ class TiktokPlugin extends BasePlugin
         $origPosterId = $message->getAuthor()->getId();
         $videoUrl = 'https://' . $uri->getHost() . $uri->getPath();
         try {
+            try {
+                $downloadUrl = $this->downloader->getVideo($videoUrl);
+            } catch (TypeError $error) {
+                if (++$retries >= self::MAX_RETRIES) {
+                    $this->sendSelfDestructingMessage('Could not download tiktok, sorry', $message->getChannelId());
+                    $this->getBot()->getLogger()->error(
+                        'TypeError while downloading tiktok',
+                        ['error' => $error]
+                    );
+                    return false;
+                }
+                $this->getBot()->getLoop()->addTimer(
+                    self::RETRY_DELAY,
+                    fn() => $this->checkPostedMessage($message, $retries)
+                );
+                return false;
+            }
+
             $tempFile = $this->getTempFile();
-            $downloadUrl = $this->downloader->getVideo($videoUrl);
             // download the actual video to $tempFile
             $res = $this->guzzleClient->get($downloadUrl, ['sink' => $tempFile]);
             if ($res->getStatusCode() !== 200) {

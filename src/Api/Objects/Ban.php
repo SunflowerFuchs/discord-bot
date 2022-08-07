@@ -37,7 +37,7 @@ class Ban
             $params['after'] = "$after";
         }
 
-        $ref = $apiClient->get("/guilds/${guildId}/bans?" . http_build_query($params));
+        $ref = $apiClient->get("guilds/${guildId}/bans?" . http_build_query($params));
         if ($ref->getStatusCode() === 200) {
             return array_map(fn(array $banData) => new static($banData),
                 json_decode($ref->getBody()->getContents(), true));
@@ -48,7 +48,7 @@ class Ban
 
     public static function loadById(Client $apiClient, Snowflake $guildId, Snowflake $userId): ?self
     {
-        $ref = $apiClient->get("/guilds/${guildId}/bans/${userId}");
+        $ref = $apiClient->get("guilds/${guildId}/bans/${userId}");
         if ($ref->getStatusCode() === 200) {
             return new static(json_decode($ref->getBody()->getContents(), true));
         }

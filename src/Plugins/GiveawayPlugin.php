@@ -6,6 +6,7 @@ use Exception;
 use PDO;
 use Pecee\Pixie\Connection;
 use Pecee\Pixie\QueryBuilder\QueryBuilderHandler;
+use SunflowerFuchs\DiscordBot\Api\Constants\Events;
 use SunflowerFuchs\DiscordBot\Api\Objects\AllowedMentions;
 use SunflowerFuchs\DiscordBot\Api\Objects\Emoji;
 use SunflowerFuchs\DiscordBot\Api\Objects\Message;
@@ -29,7 +30,7 @@ class GiveawayPlugin extends BasePlugin
         $this->db = $this->initDatabase();
         $this->getBot()->registerCommand('giveaway', [$this, 'parseCommand']);
 
-        // TODO: listen to Event::MESSAGE_DELETE and stop the giveaway if the announcement gets deleted
+        $this->subscribeToEvent(Events::MESSAGE_DELETE, [$this, 'handleDeletedMessage']);
         // TODO: draw the winner
         // TODO: allow multiple winners
     }
@@ -267,6 +268,25 @@ EOL;
             }, $giveaways);
 
         $this->sendMessage(implode("\n", $prettyGiveaways), $message->getChannelId());
+        return true;
+    }
+
+    public function handleDeletedMessage(array $data): bool
+    {
+        $messageId = new Snowflake($data['id']);
+        $giveawayIds = $this->db
+            ->table(self::TABLE)
+            ->where(self::COL_MESSAGE_ID, '=', $messageId->toInt())
+            ->select(self::COL_ID)
+            ->setFetchMode(PDO::FETCH_ASSOC)
+            ->limit(1)
+            ->get();
+
+        if (!empty($giveawayIds)) {
+            $row = $giveawayIds[0];
+            return $this->deleteGiveaway($row[self::COL_ID]);
+        }
+
         return true;
     }
 

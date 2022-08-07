@@ -24,6 +24,7 @@ class GiveawayPlugin extends BasePlugin
     protected const COL_MESSAGE_ID = 'messageId';
 
     protected QueryBuilderHandler $db;
+    protected array $cache = [];
 
     public function init()
     {
@@ -233,7 +234,7 @@ EOL;
             function (Message $message) {
                 $id = intval($message->getContent());
                 $giveaways = $this->getGiveaways($message->getGuildId());
-                if (empty(array_filter($giveaways, fn(array $giveaway) => $giveaway[self::COL_ID] === $id))) {
+                if (!isset($giveaways[$id])) {
                     $this->sendMessage("Could not find giveaway", $message->getChannelId());
                     return true;
                 }
@@ -262,7 +263,6 @@ EOL;
 
         $prettyGiveaways = array_map(
             function (array $giveaway) use ($message) {
-                $emoji = $giveaway[self::COL_EMOJI];
                 return sprintf(
                     '%d: %s, <t:%d>, announced in <#%d> with %s',
                     $giveaway[self::COL_ID],
@@ -335,16 +335,23 @@ SQL,
         Snowflake $messageId
     ): bool {
         try {
-            $this->db
+            $row = [
+                self::COL_DRAWING_DATE => $drawing,
+                self::COL_WINNINGS => $winnings,
+                self::COL_EMOJI => $emoji,
+                self::COL_CHANNEL_ID => $channelId->toInt(),
+                self::COL_GUILD_ID => $guildId->toInt(),
+                self::COL_MESSAGE_ID => $messageId->toInt()
+            ];
+            $id = (int)$this->db
                 ->table(self::TABLE)
-                ->insert([
-                    self::COL_DRAWING_DATE => $drawing,
-                    self::COL_WINNINGS => $winnings,
-                    self::COL_EMOJI => $emoji,
-                    self::COL_CHANNEL_ID => $channelId->toInt(),
-                    self::COL_GUILD_ID => $guildId->toInt(),
-                    self::COL_MESSAGE_ID => $messageId->toInt()
-                ]);
+                ->insert($row);
+
+            // Insert into cache, but only if cache was hydrated
+            if (isset($this->cache[$guildId->toInt()])) {
+                $row[self::COL_ID] = $id;
+                $this->cache[$guildId->toInt()][$id] = $row;
+            }
         } catch (Exception $e) {
             $this->getBot()->getLogger()->error('Unexpected exception', [$e]);
             return false;
@@ -360,6 +367,13 @@ SQL,
                 ->table(self::TABLE)
                 ->where(self::COL_ID, '=', $giveawayId)
                 ->delete();
+
+            foreach ($this->cache as $guildId => $rows) {
+                if (isset($rows[$giveawayId])) {
+                    unset($this->cache[$guildId][$giveawayId]);
+                    break;
+                }
+            }
         } catch (Exception $e) {
             $this->getBot()->getLogger()->error('Unexpected exception', [$e]);
             return false;
@@ -368,14 +382,20 @@ SQL,
         return true;
     }
 
-    protected function getGiveaways(Snowflake $guildId = null): array
+    protected function getGiveaways(Snowflake $guildId): array
     {
-        $query = $this->db->table(self::TABLE);
-        if ($guildId !== null) {
-            $query = $query->where(self::COL_GUILD_ID, '=', $guildId->toInt());
+        if (!isset($this->cache[$guildId->toInt()])) {
+            echo 'refreshing cache';
+            $res = $this->db
+                ->table(self::TABLE)
+                ->where(self::COL_GUILD_ID, '=', $guildId->toInt())
+                ->setFetchMode(PDO::FETCH_ASSOC)
+                ->get();
+            foreach ($res as $row) {
+                $this->cache[$guildId->toInt()][$row[self::COL_ID]] = $row;
+            }
         }
-        return $query
-            ->setFetchMode(PDO::FETCH_ASSOC)
-            ->get();
+
+        return $this->cache[$guildId->toInt()];
     }
 }

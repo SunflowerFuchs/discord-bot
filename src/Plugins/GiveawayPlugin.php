@@ -239,6 +239,11 @@ EOL;
                 }
 
                 $success = $this->deleteGiveaway($id);
+                Message::delete(
+                    $this->getBot()->getApiClient(),
+                    new Snowflake($giveaways[$id][self::COL_MESSAGE_ID]),
+                    new Snowflake($giveaways[$id][self::COL_CHANNEL_ID])
+                );
                 $text = $success ? "Giveaway ${id} deleted" : 'Could not delete giveaway';
                 $this->sendMessage($text, $message->getChannelId());
                 return true;
@@ -264,7 +269,7 @@ EOL;
                     $giveaway[self::COL_WINNINGS],
                     $giveaway[self::COL_DRAWING_DATE],
                     $giveaway[self::COL_CHANNEL_ID],
-                    Emoji::isStandardEmoji($emoji) ? $emoji : "<:${emoji}>");
+                    $giveaway[self::COL_EMOJI]);
             }, $giveaways);
 
         $this->sendMessage(implode("\n", $prettyGiveaways), $message->getChannelId());

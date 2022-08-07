@@ -57,6 +57,7 @@ class TiktokPlugin extends BasePlugin
             return true;
         }
 
+        $origPosterId = $message->getAuthor()->getId();
         $videoUrl = 'https://' . $uri->getHost() . $uri->getPath();
         try {
             $tempFile = $this->getTempFile();
@@ -74,20 +75,19 @@ class TiktokPlugin extends BasePlugin
             }
             $filesize = filesize($tempFile);
             if ($filesize > 8388284) {
-                unlink($tempFile);
-                $this->sendSelfDestructingMessage('Tiktok was too big to embed, sorry', $message->getChannelId());
-                return true;
+                $this->sendSelfDestructingMessage('Tiktok is too big to embed', $message->getChannelId(), 3);
+                // As a fallback, send the direct download link to be embedded
+                $tiktokMsg = $this->sendFallbackMessage($downloadUrl, $origPosterId, $message->getChannelId());
+            } else {
+                // send the file as a discord attachment
+                $tiktokMsg = Message::create(
+                    $this->getBot()->getApiClient(),
+                    $message->getChannelId(),
+                    "Posted by <@${origPosterId}>",
+                    (new AllowedMentions())->allowUser($origPosterId),
+                    files: [$tempFile],
+                );
             }
-
-            // send the file as a discord attachment
-            $origPosterId = $message->getAuthor()->getId();
-            $tiktokMsg = Message::create(
-                $this->getBot()->getApiClient(),
-                $message->getChannelId(),
-                "Posted by <@${origPosterId}>",
-                (new AllowedMentions())->allowUser($origPosterId),
-                files: [$tempFile],
-            );
             unlink($tempFile);
 
             if (!$tiktokMsg instanceof Message) {
@@ -95,8 +95,13 @@ class TiktokPlugin extends BasePlugin
                     'url' => $videoUrl,
                     'error' => $tiktokMsg
                 ]);
-                $this->sendSelfDestructingMessage('Could not upload tiktok, sorry', $message->getChannelId());
-                return false;
+                $this->sendSelfDestructingMessage('Could not upload tiktok, sorry', $message->getChannelId(), 3);
+                // As a fallback, send the direct download link to be embedded
+                $tiktokMsg = $this->sendFallbackMessage($downloadUrl, $origPosterId, $message->getChannelId());
+                if (!$tiktokMsg instanceof Message) {
+                    // We already sent an error message, so nothing to do here
+                    return false;
+                }
             }
 
             $success = $this->addReaction(self::REMOVE_EMOJI, $tiktokMsg->getId(), $tiktokMsg->getChannelId());
@@ -152,5 +157,16 @@ class TiktokPlugin extends BasePlugin
         $identifier = bin2hex(random_bytes(5));
         $extension = $extension ? ".${extension}" : '';
         return "${dir}${identifier}${extension}";
+    }
+
+    protected function sendFallbackMessage(string $downloadUrl, Snowflake $origPosterId, Snowflake $channelId): ?Message
+    {
+        $downloadUrl = new Uri($downloadUrl);
+        $shortDownloadUrl = 'https://' . $downloadUrl->getHost() . $downloadUrl->getPath();
+        return $this->sendMessage(
+            "Posted by <@${origPosterId}>\n${shortDownloadUrl}",
+            $channelId,
+            (new AllowedMentions())->allowUser($origPosterId)
+        );
     }
 }

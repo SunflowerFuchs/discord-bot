@@ -10,6 +10,7 @@ use Spatie\Emoji\Emoji as EmojiLib;
 use SunflowerFuchs\DiscordBot\Api\Constants\Events;
 use SunflowerFuchs\DiscordBot\Api\Objects\AllowedMentions;
 use SunflowerFuchs\DiscordBot\Api\Objects\Emoji;
+use SunflowerFuchs\DiscordBot\Api\Objects\GuildMember;
 use SunflowerFuchs\DiscordBot\Api\Objects\Message;
 use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
 use TikTok\Driver\NativeDriver;
@@ -41,8 +42,12 @@ class TiktokPlugin extends BasePlugin
         $this->subscribeToEvent(Events::MESSAGE_REACTION_ADD, [$this, 'checkReaction']);
     }
 
-    public function checkPostedMessage(Message $message, int $retries = 0): bool
-    {
+    public function checkPostedMessage(
+        Message $message,
+        Snowflake $guildId,
+        GuildMember $member = null,
+        int $retries = 0
+    ): bool {
         if (!$message->isUserMessage()) {
             // Posted via webhook/bot? don't do anything
             return true;
@@ -76,7 +81,7 @@ class TiktokPlugin extends BasePlugin
                 }
                 $this->getBot()->getLoop()->addTimer(
                     self::RETRY_DELAY,
-                    fn() => $this->checkPostedMessage($message, $retries)
+                    fn() => $this->checkPostedMessage($message, $guildId, $member, $retries)
                 );
                 return false;
             }

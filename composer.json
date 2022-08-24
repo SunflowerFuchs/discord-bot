@@ -4,7 +4,6 @@
 	"type": "library",
 	"license": "MIT",
 	"readme": "./README.MD",
-	"version": "0.0.1",
 	"autoload": {
 		"psr-4": {
 			"SunflowerFuchs\\DiscordBot\\": "src/"

@@ -20,7 +20,7 @@ class Sticker extends StickerItem
     /**
      * id of the pack the sticker is from
      */
-    protected Snowflake $pack_id;
+    protected ?Snowflake $pack_id;
     /**
      * description of the sticker
      */
@@ -54,8 +54,8 @@ class Sticker extends StickerItem
     {
         parent::__construct($data);
 
-        $this->pack_id = new Snowflake($data['pack_id']);
-        $this->description = $data['description'];
+        $this->pack_id = isset($data['pack_id']) ? new Snowflake($data['pack_id']) : null;
+        $this->description = $data['description'] ?? '';
         $this->tags = explode(',', $data['tags']);
         $this->type = $data['type'];
 
@@ -69,7 +69,7 @@ class Sticker extends StickerItem
     /**
      * id of the pack the sticker is from
      */
-    public function getPackId(): Snowflake
+    public function getPackId(): ?Snowflake
     {
         return $this->pack_id;
     }

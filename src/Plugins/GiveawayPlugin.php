@@ -6,10 +6,12 @@ use Exception;
 use PDO;
 use Pecee\Pixie\Connection;
 use Pecee\Pixie\QueryBuilder\QueryBuilderHandler;
+use React\EventLoop\TimerInterface;
 use SunflowerFuchs\DiscordBot\Api\Constants\Events;
 use SunflowerFuchs\DiscordBot\Api\Objects\AllowedMentions;
 use SunflowerFuchs\DiscordBot\Api\Objects\Emoji;
 use SunflowerFuchs\DiscordBot\Api\Objects\Message;
+use SunflowerFuchs\DiscordBot\Api\Objects\Reaction;
 use SunflowerFuchs\DiscordBot\Api\Objects\Snowflake;
 
 class GiveawayPlugin extends BasePlugin
@@ -22,10 +24,13 @@ class GiveawayPlugin extends BasePlugin
     protected const COL_GUILD_ID = 'guildId';
     protected const COL_CHANNEL_ID = 'channelId';
     protected const COL_MESSAGE_ID = 'messageId';
+    protected const RETRY_DELAY = 30;
+    protected const MAX_RETRIES = 3;
 
     protected QueryBuilderHandler $db;
     protected array $cache = [];
     protected bool $hydrated = false;
+    protected ?TimerInterface $timer = null;
 
     public function init()
     {
@@ -33,7 +38,7 @@ class GiveawayPlugin extends BasePlugin
         $this->getBot()->registerCommand('giveaway', [$this, 'parseCommand']);
         $this->subscribeToEvent(Events::MESSAGE_DELETE, [$this, 'handleDeletedMessage']);
 
-        $this->hydrateCache();
+        $this->prepareNextGiveaway();
         // TODO: draw the winner
         // TODO: allow multiple winners
     }
@@ -416,5 +421,60 @@ SQL,
 
         // flatten the array
         return array_reduce($this->cache, fn(array $carry, array $giveaways) => $carry + $giveaways, []);
+    }
+
+    protected function prepareNextGiveaway(): void
+    {
+        if ($this->timer !== null) {
+            $this->getBot()->getLoop()->cancelTimer($this->timer);
+            $this->timer = null;
+        }
+
+        $giveaways = $this->getAllGiveaways();
+        if (empty($giveaways)) {
+            return;
+        }
+
+        usort(
+            $giveaways,
+            fn(array $row1, array $row2) => $row1[self::COL_DRAWING_DATE] <=> $row2[self::COL_DRAWING_DATE]
+        );
+        $next = reset($giveaways);
+
+        $waitTime = $next[self::COL_DRAWING_DATE] - time();
+        $this->timer = $this->getBot()->getLoop()->addTimer(
+            $waitTime,
+            fn() => $this->drawWinner($next[self::COL_ID])
+        );
+    }
+
+    protected function drawWinner(int $giveawayId, int $retry = 0): void
+    {
+        $giveaway = $this->getAllGiveaways()[$giveawayId] ?? [];
+        if (!$giveaway) {
+            // giveaway doesn't exist anymore, just move on to the next one
+            $this->prepareNextGiveaway();
+            return;
+        }
+
+        // TODO: Pagination?
+        $reactions = Reaction::getUsers(
+            $this->getBot()->getApiClient(),
+            new Snowflake($giveaway[self::COL_CHANNEL_ID]),
+            new Snowflake($giveaway[self::COL_MESSAGE_ID]),
+            $giveaway[self::COL_EMOJI]
+        );
+        if ($reactions === null) {
+            $retry++;
+            if ($retry >= self::MAX_RETRIES) {
+                $this->getBot()->getLogger()->error("Could not draw winner for giveaway", $giveaway);
+                $this->deleteGiveaway($giveawayId);
+                $this->prepareNextGiveaway();
+                return;
+            }
+
+            $this->getBot()->getLoop()->addTimer(self::RETRY_DELAY, fn() => $this->drawWinner($giveawayId, $retry));
+        }
+        // TODO: draw and announce the winner
     }
 }

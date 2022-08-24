@@ -25,13 +25,15 @@ class GiveawayPlugin extends BasePlugin
 
     protected QueryBuilderHandler $db;
     protected array $cache = [];
+    protected bool $hydrated = false;
 
     public function init()
     {
         $this->db = $this->initDatabase();
         $this->getBot()->registerCommand('giveaway', [$this, 'parseCommand']);
-
         $this->subscribeToEvent(Events::MESSAGE_DELETE, [$this, 'handleDeletedMessage']);
+
+        $this->hydrateCache();
         // TODO: draw the winner
         // TODO: allow multiple winners
     }
@@ -384,18 +386,35 @@ SQL,
 
     protected function getGiveaways(Snowflake $guildId): array
     {
-        if (!isset($this->cache[$guildId->toInt()])) {
-            echo 'refreshing cache';
-            $res = $this->db
-                ->table(self::TABLE)
-                ->where(self::COL_GUILD_ID, '=', $guildId->toInt())
-                ->setFetchMode(PDO::FETCH_ASSOC)
-                ->get();
-            foreach ($res as $row) {
-                $this->cache[$guildId->toInt()][$row[self::COL_ID]] = $row;
-            }
+        if ($this->hydrated) {
+            $this->hydrateCache();
         }
 
         return $this->cache[$guildId->toInt()];
+    }
+
+    protected function hydrateCache(): void
+    {
+        $this->cache = [];
+
+        $res = $this->db
+            ->table(self::TABLE)
+            ->setFetchMode(PDO::FETCH_ASSOC)
+            ->get();
+
+        foreach ($res as $row) {
+            $this->cache[$row[self::COL_GUILD_ID]] ??= [];
+            $this->cache[$row[self::COL_GUILD_ID]][$row[self::COL_ID]] = $row;
+        }
+    }
+
+    protected function getAllGiveaways(): array
+    {
+        if (!$this->hydrated) {
+            $this->hydrateCache();
+        }
+
+        // flatten the array
+        return array_reduce($this->cache, fn(array $carry, array $giveaways) => $carry + $giveaways, []);
     }
 }

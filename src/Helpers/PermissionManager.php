@@ -136,12 +136,14 @@ class PermissionManager
         }
 
         // Check if the user has been given the permission directly
-        $hasPermission = $this->db->count(self::TABLE_MEMBERS, null, [
-            self::COL_GUILD_ID => $guildId->toInt(),
-            self::COL_USER_ID => $guildMember->getUser()->getId()->toInt(),
-            self::COL_PERMISSION => $permission
-        ]);
-        if ($hasPermission === 1) {
+        $hasPermission = $this->db
+                ->table(self::TABLE_MEMBERS)
+                ->where(self::COL_GUILD_ID, '=', $guildId->toInt())
+                ->where(self::COL_USER_ID, '=', $guildMember->getUser()->getId()->toInt())
+                ->where(self::COL_PERMISSION, '=', $permission)
+                ->count() === 1;
+
+        if ($hasPermission) {
             return true;
         }
 

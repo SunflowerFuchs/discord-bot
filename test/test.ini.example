@@ -1,7 +1,0 @@
-[tests]
-token = "ABCDEF"
-prefix = "!"
-loglevel = notice
-
-; uncomment this line to disable the default plugins
-;defaultPlugins = false

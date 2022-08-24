@@ -2,17 +2,12 @@
 	"name": "sunflowerfuchs/discord-bot",
 	"description": "An easily extendable discord bot, written in PHP",
 	"type": "library",
-	"license": "GPL-3.0-or-later",
+	"license": "MIT",
 	"readme": "./README.MD",
 	"version": "0.0.1",
 	"autoload": {
 		"psr-4": {
 			"SunflowerFuchs\\DiscordBot\\": "src/"
-		}
-	},
-	"autoload-dev": {
-		"psr-4": {
-			"SunflowerFuchs\\DiscordBot\\Tests\\": "test/"
 		}
 	},
 	"require": {
@@ -27,8 +22,5 @@
 		"psr/log": "^1.1.4",
 		"spatie/emoji": "^3.0",
 		"pecee/pixie": "^4.15"
-	},
-	"suggest": {
-		"gingteam/tiktok:dev-main": "Required for the TiktokPlugin"
 	}
 }

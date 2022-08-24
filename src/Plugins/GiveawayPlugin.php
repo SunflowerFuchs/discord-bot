@@ -37,10 +37,12 @@ class GiveawayPlugin extends BasePlugin
         $this->db = $this->initDatabase();
         $this->getBot()->registerCommand('giveaway', [$this, 'parseCommand']);
         $this->subscribeToEvent(Events::MESSAGE_DELETE, [$this, 'handleDeletedMessage']);
+    }
 
+    public function ready()
+    {
+        parent::ready();
         $this->prepareNextGiveaway();
-        // TODO: draw the winner
-        // TODO: allow multiple winners
     }
 
     public function parseCommand(Message $message): bool
@@ -195,6 +197,9 @@ class GiveawayPlugin extends BasePlugin
             $this->sendMessage('An error occurred while saving the giveaway, sorry', $message->getChannelId());
             return false;
         }
+
+        // And make sure we prepare for drawing a winner
+        $this->prepareNextGiveaway();
         return true;
     }
 
@@ -375,12 +380,31 @@ SQL,
                 ->where(self::COL_ID, '=', $giveawayId)
                 ->delete();
 
-            foreach ($this->cache as $guildId => $rows) {
-                if (isset($rows[$giveawayId])) {
-                    unset($this->cache[$guildId][$giveawayId]);
-                    break;
-                }
+            $this->deleteGiveawayFromCache($giveawayId);
+        } catch (Exception $e) {
+            $this->getBot()->getLogger()->error('Unexpected exception', [$e]);
+            return false;
+        }
+
+        return true;
+    }
+
+    protected function delayGiveaway(int $giveawayId): bool
+    {
+        try {
+            $giveaway = $this->getAllGiveaways()[$giveawayId] ?? null;
+            if (!$giveaway) {
+                throw new Exception("Could not find giveaway ${giveawayId}");
             }
+
+            $newDate = $giveaway[self::COL_DRAWING_DATE] + (self::RETRY_DELAY * 10);
+
+            $this->db
+                ->table(self::TABLE)
+                ->where(self::COL_ID, '=', $giveawayId)
+                ->update([self::COL_DRAWING_DATE => $newDate]);
+
+            $this->cache[$giveaway[self::COL_GUILD_ID]][$giveawayId][self::COL_DRAWING_DATE] = $newDate;
         } catch (Exception $e) {
             $this->getBot()->getLogger()->error('Unexpected exception', [$e]);
             return false;
@@ -410,6 +434,16 @@ SQL,
         foreach ($res as $row) {
             $this->cache[$row[self::COL_GUILD_ID]] ??= [];
             $this->cache[$row[self::COL_GUILD_ID]][$row[self::COL_ID]] = $row;
+        }
+    }
+
+    protected function deleteGiveawayFromCache(int $giveawayId): void
+    {
+        foreach ($this->cache as $guildId => $giveaways) {
+            if (isset($giveaways[$giveawayId])) {
+                unset($this->cache[$guildId][$giveawayId]);
+                return;
+            }
         }
     }
 
@@ -457,24 +491,51 @@ SQL,
             return;
         }
 
-        // TODO: Pagination?
-        $reactions = Reaction::getUsers(
+        $channelId = new Snowflake($giveaway[self::COL_CHANNEL_ID]);
+        $messageId = new Snowflake($giveaway[self::COL_MESSAGE_ID]);
+        $winnings = $giveaway[self::COL_WINNINGS];
+        $emojiString = $giveaway[self::COL_EMOJI];
+        $emoji = Emoji::normalizeEmoji($emojiString);
+
+        $users = Reaction::getAllUsers(
             $this->getBot()->getApiClient(),
-            new Snowflake($giveaway[self::COL_CHANNEL_ID]),
-            new Snowflake($giveaway[self::COL_MESSAGE_ID]),
-            $giveaway[self::COL_EMOJI]
+            $channelId,
+            $messageId,
+            $emoji
         );
-        if ($reactions === null) {
+        if ($users === null) {
             $retry++;
             if ($retry >= self::MAX_RETRIES) {
+                $this->sendMessage("Could not draw winner for giveaway ${giveawayId}", $channelId);
                 $this->getBot()->getLogger()->error("Could not draw winner for giveaway", $giveaway);
-                $this->deleteGiveaway($giveawayId);
+                $this->delayGiveaway($giveawayId);
                 $this->prepareNextGiveaway();
                 return;
             }
 
             $this->getBot()->getLoop()->addTimer(self::RETRY_DELAY, fn() => $this->drawWinner($giveawayId, $retry));
         }
-        // TODO: draw and announce the winner
+
+        // Remove the bot from the user list
+        if (isset($users[$this->getBot()->getUserId()->toInt()])) {
+            unset($users[$this->getBot()->getUserId()->toInt()]);
+        }
+
+        if (empty($users)) {
+            $this->sendMessage("It seems like nobody wanted to win ${winnings}, what a bummer.", $channelId);
+            $this->deleteGiveaway($giveawayId);
+            $this->prepareNextGiveaway();
+            return;
+        }
+
+        $winnerId = new Snowflake(array_rand($users));
+        $this->sendMessage(
+            "Congratulations to <@${winnerId}> for winning ${winnings}",
+            $channelId,
+            (new AllowedMentions())->allowUser($winnerId)
+        );
+
+        $this->deleteGiveaway($giveawayId);
+        $this->prepareNextGiveaway();
     }
 }

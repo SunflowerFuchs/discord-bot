@@ -26,6 +26,18 @@ abstract class BasePlugin
     abstract public function init();
 
     /**
+     * Overwrite to run tasks once the bot connects.
+     *
+     * This function gets called automatically once the bot has connected successfully for the first time.
+     * Unlike {@see init()}, this means that things like e.g. the api client are already available.
+     *
+     * @return void
+     */
+    public function ready()
+    {
+    }
+
+    /**
      * @return Bot
      * @throws LogicException if called before plugin was correctly initialized
      */
@@ -165,13 +177,7 @@ abstract class BasePlugin
         Snowflake $channelId,
         callable $onReaction = null
     ): bool {
-        // If the emoji is a custom emoji, try to normalize it
-        if (!Emoji::isStandardEmoji($emoji)) {
-            if (str_starts_with($emoji, '<')) {
-                preg_match('/^<a?:(\w+:\d+)>$/', $emoji, $matches);
-                $emoji = $matches[1] ?? $emoji;
-            }
-        }
+        $emoji = Emoji::normalizeEmoji($emoji);
 
         $success = Reaction::create(
             $this->getBot()->getApiClient(),

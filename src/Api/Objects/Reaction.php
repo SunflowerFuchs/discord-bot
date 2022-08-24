@@ -7,6 +7,7 @@ namespace SunflowerFuchs\DiscordBot\Api\Objects;
 
 
 use GuzzleHttp\Client;
+use GuzzleHttp\Exception\GuzzleException;
 
 class Reaction
 {
@@ -37,19 +38,66 @@ class Reaction
         return $res->getStatusCode() === 204;
     }
 
+    /**
+     * @param Client $apiClient
+     * @param Snowflake $channelId
+     * @param Snowflake $messageId
+     * @param string $emoji
+     * @param int $limit
+     * @param Snowflake|null $after
+     * @return User[]|null
+     * @throws GuzzleException
+     */
     public static function getUsers(
         Client $apiClient,
         Snowflake $channelId,
         Snowflake $messageId,
-        string $emoji
+        string $emoji,
+        int $limit = 25,
+        Snowflake $after = null
     ): ?array {
-        $ref = $apiClient->get("channels/${channelId}/messages/${messageId}/reactions/${emoji}");
+        $params = ['limit' => $limit];
+        if ($after !== null) {
+            $params['after'] = (string)$after;
+        }
+
+        $ref = $apiClient->get("channels/${channelId}/messages/${messageId}/reactions/${emoji}?" . http_build_query($params));
         if ($ref->getStatusCode() === 200) {
             return array_map(fn(array $userData) => new User($userData),
                 json_decode($ref->getBody()->getContents(), true));
         }
 
         return null;
+    }
+
+    /**
+     * @param Client $apiClient
+     * @param Snowflake $channelId
+     * @param Snowflake $messageId
+     * @param string $emoji
+     * @return User[]|null
+     * @throws GuzzleException
+     */
+    public static function getAllUsers(
+        Client $apiClient,
+        Snowflake $channelId,
+        Snowflake $messageId,
+        string $emoji,
+    ): ?array {
+        $allUsers = [];
+        do {
+            $lastUser = array_key_last($allUsers);
+            $users = self::getUsers($apiClient, $channelId, $messageId, $emoji, 100, $lastUser);
+            if ($users === null) {
+                return null;
+            }
+
+            foreach ($users as $user) {
+                $allUsers[$user->getId()->toInt()] = $user;
+            }
+        } while (is_array($users) && count($users) === 1000);
+
+        return $allUsers;
     }
 
     /**

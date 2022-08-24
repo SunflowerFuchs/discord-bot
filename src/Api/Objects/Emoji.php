@@ -206,6 +206,27 @@ class Emoji
     }
 
     /**
+     * Helper function to normalize an emoji string
+     *
+     * Turns `&lt;a:name:snowflake&gt;` representation into clean `name:snowflake`
+     *
+     * @param string $emoji
+     * @return string
+     */
+    public static function normalizeEmoji(string $emoji): string
+    {
+        // If the emoji is a custom emoji, try to normalize it
+        if (!Emoji::isStandardEmoji($emoji)) {
+            if (str_starts_with($emoji, '<')) {
+                preg_match('/^<a?:(\w+:\d+)>$/', $emoji, $matches);
+                $emoji = $matches[1] ?? $emoji;
+            }
+        }
+
+        return $emoji;
+    }
+
+    /**
      * The id of the emote
      *
      * @return ?Snowflake

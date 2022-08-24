@@ -171,6 +171,14 @@ class Bot implements LoggerAwareInterface
             $this->logger->info("Gateway session initialized.");
             $this->sessionId = $sessionId;
             $this->userId = $user->getId();
+
+            static $firstInit = true;
+            if ($firstInit) {
+                $firstInit = false;
+                foreach ($this->plugins as $plugin) {
+                    $plugin->ready();
+                }
+            }
         });
 
         $this->eventManager->subscribe(Events::RECONNECT, function () {

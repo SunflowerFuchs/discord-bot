@@ -37,6 +37,21 @@ class Reaction
         return $res->getStatusCode() === 204;
     }
 
+    public static function getUsers(
+        Client $apiClient,
+        Snowflake $channelId,
+        Snowflake $messageId,
+        string $emoji
+    ): ?array {
+        $ref = $apiClient->get("channels/${channelId}/messages/${messageId}/reactions/${emoji}");
+        if ($ref->getStatusCode() === 200) {
+            return array_map(fn(array $userData) => new User($userData),
+                json_decode($ref->getBody()->getContents(), true));
+        }
+
+        return null;
+    }
+
     /**
      * The amount of reactions
      * @return int

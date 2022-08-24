@@ -26,7 +26,7 @@ class Emoji
      * role ids this emoji is whitelisted to
      * @var int[]
      */
-    protected ?array $roles;
+    protected array $roles;
     /**
      * object user that created this emoji
      */
@@ -57,9 +57,7 @@ class Emoji
         $this->managed = $data['managed'] ?? false;
         $this->animated = $data['animated'] ?? false;
         $this->available = $data['available'] ?? true;
-
-        $this->roles = array_map(fn(array $roleData) => new Role($roleData),
-            $data['roles'] ?? []);
+        $this->roles = $data['roles'] ?? [];
     }
 
     /**
@@ -251,7 +249,7 @@ class Emoji
      *
      * @return int[]
      */
-    public function getRoles(): ?array
+    public function getRoles(): array
     {
         return $this->roles;
     }
